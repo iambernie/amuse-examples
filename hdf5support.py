@@ -98,16 +98,22 @@ def parse_unitsstring(string):
     return full_unitstring
 
 
-class test_asdf(unittest.TestCase):
+class test_hdf5_units_retrieval(unittest.TestCase):
     """ 
     Tests. 
     """
     
     def setUp(self):
         self.avq = AdaptingVectorQuantity()
-
-    def test_1(self):
-        pass
+        
+    def test_m(self):
+        vq = range(3) | units.m
+        unitstring = vq.unit.to_reduced_form()
+        values = vq.value_in(vq.unit)
+        evaluable_unit = parse_unitsstring(unitstring)
+        self.assertEqual( vq, values | eval(evaluable_unit) )
+        
+        
 
     def test_2(self):
         pass
