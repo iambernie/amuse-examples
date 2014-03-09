@@ -9,6 +9,22 @@ from amuse.units.quantities import AdaptingVectorQuantity
 from amuse.units.quantities import VectorQuantity
 from amuse.units import units
 
+class Bunch(object):
+    """
+    Assigns a bunch of keywords as attributes to a Bunch instance.
+
+    Example
+    -------
+    >>> data = Bunch(mass = 1, position=[1,2,3])
+    >>> data.mass
+    1
+    >>> data.position
+    [1, 2, 3]
+    >>> 
+    """
+    def __init__(self, **kwds):
+        self.__dict__.update(kwds)
+
 
 class Results(object):
     """ Container for the results of the hydrodynamics simulation. 
@@ -66,7 +82,7 @@ def write_to_hdf5(filename, data):
             f[keyword].attrs[name] = hdf5ready.attributes[name]
     f.close()
     del f
-    print "Written hdf5 file to %s."%filename
+    print("Written hdf5 file to {}.".format(filename))
 
 def read_from_hdf5(filename):
     """ Reads an hdf5 file and returns a Results instance."""
@@ -98,26 +114,19 @@ def parse_unitsstring(string):
     return full_unitstring
 
 
-class test_hdf5_units_retrieval(unittest.TestCase):
+class test_units_string_retrieval(unittest.TestCase):
     """ 
-    Tests. 
+    Tests whether the string representation can be retrieved and used
+    to instantiate a quantity.
     """
-    
-    def setUp(self):
-        self.avq = AdaptingVectorQuantity()
         
     def test_m(self):
         vq = range(3) | units.m
-        unitstring = vq.unit.to_reduced_form()
+        unitstring = str(vq.unit.to_reduced_form())
         values = vq.value_in(vq.unit)
         evaluable_unit = parse_unitsstring(unitstring)
-        self.assertEqual( vq, values | eval(evaluable_unit) )
+        self.assertEqual( vq.unit, (values |eval(evaluable_unit)).unit )
         
-        
-
-    def test_2(self):
-        pass
-
 
 
 if __name__ == "__main__":
