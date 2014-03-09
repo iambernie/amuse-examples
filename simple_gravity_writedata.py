@@ -9,7 +9,8 @@ from amuse.units.nbody_system import nbody_to_si
 
 def main():
     """
-    Minimalistic stellar dynamics simulation.
+    Minimalistic stellar dynamics simulation to test hdf5 writer.
+
     """
     bodies = system_of_sun_and_earth()
     evolve_system(bodies)
@@ -18,7 +19,6 @@ def main():
 def evolve_system(particles):
     """
     Evolves the system using the Hermite integrator.
-
 
     Parameters
     ----------
@@ -40,7 +40,6 @@ def system_of_sun_and_earth():
     """
     Sets up a two-body system representing the sun and earth.
  
-
     Returns
     -------
     Particles instance representing the sun and earth.
@@ -65,6 +64,7 @@ def system_of_sun_and_earth():
 def get_arguments():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('-f','--file', metavar="HDF5 FILENAME")
     parser.add_argument('-s','--steps', metavar="NR_OF_STEPS", type=int,
                         default=50)
     parser.add_argument('-t','--time', metavar="END_TIME", type=float,
@@ -76,5 +76,44 @@ def get_arguments():
 
 if __name__ == "__main__":
     args = get_arguments()
+    print(args)
     main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
 
