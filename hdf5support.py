@@ -114,23 +114,64 @@ def parse_unitsstring(string):
     return full_unitstring
 
 
-class test_units_string_retrieval(unittest.TestCase):
-    """ 
-    Tests whether the string representation can be retrieved and used
-    to instantiate a quantity.
-    """
-        
-    def test_m(self):
-        vq = range(3) | units.m
-        unitstring = str(vq.unit.to_reduced_form())
-        values = vq.value_in(vq.unit)
-        evaluable_unit = parse_unitsstring(unitstring)
-        self.assertEqual( vq.unit, (values |eval(evaluable_unit)).unit )
-        
-
-
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
