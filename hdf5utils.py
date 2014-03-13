@@ -20,7 +20,7 @@ class Dataset(object):
         self.blockcounter = 0
         self.chunksize = dset.chunks[0]
         self.blocksize = dset.shape[0] 
-        self.axis1 = dset.shape[1] #FIXME: maybe this should always be the last axis
+        self.arr_shape = dset.shape[1:] 
 
         self.dbuffer = list()
 
@@ -28,23 +28,21 @@ class Dataset(object):
         """
         Parameters
         ----------
-        array: 1-D ndarray or list
-
-        TODO: N-D support
+        array: ndarray or list
 
         """
-
         self.dbuffer.append(array)
 
         if len(self.dbuffer) == self.chunksize: # WRITE BUFFER
             begin = self.blockcounter*self.blocksize + self.chunkcounter*self.chunksize
             end = begin + self.chunksize
             dbuffer_ndarray = numpy.array(self.dbuffer)
-            self.dset[begin:end, :] = dbuffer_ndarray
+            self.dset[begin:end, ...] = dbuffer_ndarray
             self.dbuffer = list() 
 
             if end == self.dset.shape[0]: #BLOCK IS FULL --> CREATE NEW BLOCK
-                self.dset.resize( (end+self.blocksize, self.axis1) )
+                new_shape = sum(((end+self.blocksize,), self.arr_shape), ())
+                self.dset.resize(new_shape)
                 self.blockcounter += 1
                 self.chunkcounter = 0 
             else:
@@ -57,22 +55,22 @@ class Dataset(object):
 
         begin = self.blockcounter*self.blocksize + self.chunkcounter*self.chunksize
         end = begin + len(dbuffer)
-        self.dset[begin:end, :] = dbuffer_ndarray
+        self.dset[begin:end, ...] = dbuffer_ndarray
         self.dbuffer = list() 
         
         if trim:
-            self.dset.resize( (end, self.axis1) )
+            new_shape = sum(((end,), self.arr_shape), ())
+            self.dset.resize(new_shape)
 
 
 class HDF5Handler(object):
 
-    def __init__(self, filename, max_length=None, mode='a'):
+    def __init__(self, filename, mode='a'):
         """
 
         Parameters
         ----------
         filename   : filename of the hdf5 file.
-        max_length : typically the number of steps.
 
 
         Usage should roughly be like:
@@ -87,7 +85,6 @@ class HDF5Handler(object):
         
         """
         self.filename = filename
-        self.max_length = max_length
         self.mode = mode
         self.index = dict()
 
@@ -114,36 +111,47 @@ class HDF5Handler(object):
             self.create_dset(dset_path, array, **kwargs) 
             self.index[dset_path].append(array)
 
-    def create_dset(self, dset_path, array, **kwargs):
+    def create_dset(self, dset_path, array, chunksize=1000, blockfactor=100):
         """
         Define h5py dataset parameters here. 
 
-        IMPORTANT:
-            - choose chunkshape wisely (has serious performance implications)
-              See h5py docs on chunked storage. 
 
         Parameters
         ----------
         dset_path: unix-style path
+        array: array to append
+        blockfactor: used to calculate blocksize. (blocksize = blockfactor*chunksize)
+        chunksize: determines the buffersize. (e.g.: if chunksize = 1000, the 
+        buffer will be written to the dataset after a 1000 HDF5Handler.append() calls. 
+        You want to  make sure that the buffersize is between 10KiB - 1 MiB = 1048576 bytes.
+
+        This has serious performance implications if chosen too big or small,
+        so I'll repeat that:
+             
+           MAKE SURE YOU CHOOSE YOUR CHUNKSIZE SUCH THAT THE BUFFER 
+           DOES NOT EXCEED 1048576 bytes.
+
+        See h5py docs on chunked storage for more info.
 
         """
         if isinstance(array, numpy.ndarray):
-            axis1 = array.shape[0] 
+            arr_shape = array.shape 
         elif isinstance(array, list):
-            axis1 = len(array) 
+            ndarray = numpy.array(list)
+            arr_shape = len(ndarray) 
         else:
             raise TypeError("{} not supported".format(type(array)))
 
-        chunksize = kwargs['chunks'][0]
+        blocksize = blockfactor * chunksize 
 
-        if 'blocksize' in kwargs:
-            blocksize = kwargs['blocksize']
-        else:
-            blocksize = 100 * chunksize #FIXME: don't hardcode this, but what is a good blocksize?
-                                       # (smaller blocksize means more resizes.)
+        chunkshape = sum(((chunksize,), arr_shape), ())
+        maxshape = sum(((None,), arr_shape), ())
 
-        dset = self.file.create_dataset(dset_path, shape=(blocksize, axis1), **kwargs)
-        self.index.update({dset_path: Dataset(dset) })
+        dsetkw = dict(chunks=chunkshape, maxshape=maxshape)
+                                       
+        init_shape = sum(((blocksize,), arr_shape), ())
+        dset = self.file.create_dataset(dset_path, shape=init_shape, **dsetkw)
+        self.index.update({dset_path: Dataset(dset)})
 
     def flushbuffers(self):
         """
@@ -154,16 +162,15 @@ class HDF5Handler(object):
             dset.flush()
             
 
-
 #TODO: move tests
 class test_HDF5Handler_ndarrays_resizable(unittest.TestCase):
     
     def setUp(self):
         self.filename = 'test.hdf5'
-        self.ints = numpy.ones(10000*3).reshape(10000, 3)
+        self.ints = numpy.ones(123456*4).reshape(123456, 4)
         self.floats = numpy.linspace(0, 4123, 10000*3).reshape(10000, 3)
 
-        self.kwargs = dict(chunks=(1000, 3), maxshape=(None, 3)) #choose wisely!
+        self.kwargs = dict(chunksize=1000, blockfactor=100) #choose wisely!
 
     def test_group_creation(self):
         with HDF5Handler(self.filename) as h:
@@ -213,15 +220,17 @@ class test_HDF5Handler_ndarrays_resizable(unittest.TestCase):
     def test_multiple_datasets(self):
         ndarrA =  numpy.ones(10000*3).reshape(10000, 3)
 
-        with HDF5Handler(self.filename, max_length=10) as h:
+        with HDF5Handler(self.filename) as h:
             for i in range(10000):
                 h.append(ndarrA[i], 'testA', **self.kwargs) 
                 h.append(ndarrA[i], 'testB', **self.kwargs) 
                 h.append(ndarrA[i], 'testC', **self.kwargs) 
-            self.assertEqual(numpy.sum(ndarrA), h.file['testA'].value.sum())
-            self.assertEqual(numpy.sum(ndarrA), h.file['testB'].value.sum())
-            self.assertEqual(numpy.sum(ndarrA), h.file['testC'].value.sum())
-            self.assertEqual(3, len(h.file.keys()) )
+
+        f = h5py.File(self.filename)
+        self.assertEqual(numpy.sum(ndarrA), f['testA'].value.sum())
+        self.assertEqual(numpy.sum(ndarrA), f['testB'].value.sum())
+        self.assertEqual(numpy.sum(ndarrA), f['testC'].value.sum())
+        self.assertEqual(3, len(f.keys()) )
    
     def test_flushbuffers(self):
         ndarr = numpy.ones(12345*3).reshape(12345, 3)
@@ -255,29 +264,6 @@ class test_HDF5Handler_ndarrays_resizable(unittest.TestCase):
         self.assertEqual(ndarr.shape, f['test'].shape)
 
     #####################   Value tests  ####################
-    def test_sum_ints(self):
-        with HDF5Handler(self.filename) as h:
-            for row in self.ints:
-                h.append(row, 'test', **self.kwargs) 
-            self.assertEqual(numpy.sum(self.ints), h.file['test'].value.sum())
-
-    def test_sum_flts_almostequal6(self):
-        with HDF5Handler(self.filename) as h:
-            for row in self.floats:
-                h.append(row, 'test', **self.kwargs) 
-            self.assertAlmostEqual(numpy.sum(self.floats), h.file['test'].value.sum(), places=6)
-        
-    def test_sum_flts_almostequal5(self):
-        with HDF5Handler(self.filename) as h:
-            for row in self.floats:
-                h.append(row, 'test', **self.kwargs) 
-            self.assertAlmostEqual(numpy.sum(self.floats), h.file['test'].value.sum(), places=5)
-
-    def test_sum_flts_almostequal4(self):
-        with HDF5Handler(self.filename) as h:
-            for row in self.floats:
-                h.append(row, 'test', **self.kwargs) 
-            self.assertAlmostEqual(numpy.sum(self.floats), h.file['test'].value.sum(), places=4)
 
     def test_sum_ints_after_closing(self):
         with HDF5Handler(self.filename) as h:
