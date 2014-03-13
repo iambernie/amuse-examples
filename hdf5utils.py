@@ -9,6 +9,9 @@ import numpy
 class Dataset(object):
     def __init__(self, dset):
         """
+        
+        Parameters
+        ----------
         dset: h5py Dataset
 
         """
@@ -17,33 +20,28 @@ class Dataset(object):
         self.blockcounter = 0
         self.chunksize = dset.chunks[0]
         self.blocksize = dset.shape[0] 
-        self.axis1 = dset.shape[1]
+        self.axis1 = dset.shape[1] #FIXME: maybe this should always be the last axis
 
         self.dbuffer = list()
 
-
     def append(self, array):
         """
-        array: 1D ndarray or list
+        Parameters
+        ----------
+        array: 1-D ndarray or list
+
+        TODO: N-D support
+
         """
-        # Validation of array. Just wing it for now.
-        #
-        #if isinstance(array, numpy.ndarray):
-        #    assert len(array.shape) == 1
-        #elif isinstance(array, list):
-        #    assert len(numpy.array(array).shape ) == 1
-        #else:
-        #    raise ValueError("{} is not 1D".format(type(array)))
 
         self.dbuffer.append(array)
 
         if len(self.dbuffer) == self.chunksize: # WRITE BUFFER
             begin = self.blockcounter*self.blocksize + self.chunkcounter*self.chunksize
             end = begin + self.chunksize
-            #    print("WRITING TO ADDRESS: [{}:{}, :]".format(begin,end))
             dbuffer_ndarray = numpy.array(self.dbuffer)
             self.dset[begin:end, :] = dbuffer_ndarray
-            self.dbuffer = list() # 'clear' buffer
+            self.dbuffer = list() 
 
             if end == self.dset.shape[0]: #BLOCK IS FULL --> CREATE NEW BLOCK
                 self.dset.resize( (end+self.blocksize, self.axis1) )
@@ -52,8 +50,18 @@ class Dataset(object):
             else:
                 self.chunkcounter += 1
 
-    def flush(self): #TODO
-        pass
+    def flush(self, trim=True): 
+        dbuffer = self.dbuffer 
+
+        dbuffer_ndarray = numpy.array(dbuffer)
+
+        begin = self.blockcounter*self.blocksize + self.chunkcounter*self.chunksize
+        end = begin + len(dbuffer)
+        self.dset[begin:end, :] = dbuffer_ndarray
+        self.dbuffer = list() 
+        
+        if trim:
+            self.dset.resize( (end, self.axis1) )
 
 
 class HDF5Handler(object):
@@ -127,8 +135,12 @@ class HDF5Handler(object):
             raise TypeError("{} not supported".format(type(array)))
 
         chunksize = kwargs['chunks'][0]
-        blocksize = 100 * chunksize #FIXME: don't hardcode this, but what is a good blocksize?
-                                   # (smaller blocksize means more resizes.)
+
+        if 'blocksize' in kwargs:
+            blocksize = kwargs['blocksize']
+        else:
+            blocksize = 100 * chunksize #FIXME: don't hardcode this, but what is a good blocksize?
+                                       # (smaller blocksize means more resizes.)
 
         dset = self.file.create_dataset(dset_path, shape=(blocksize, axis1), **kwargs)
         self.index.update({dset_path: Dataset(dset) })
@@ -138,11 +150,12 @@ class HDF5Handler(object):
         When the number of h.append calls is not a multiple of buffersize, then there 
         will be unwritten arrays in dbuffer, since dbuffer is only written when it is full.
         """
-        #TODO: flush 'em 
-        pass
+        for dset in self.index.itervalues():
+            dset.flush()
+            
 
 
-
+#TODO: move tests
 class test_HDF5Handler_ndarrays_resizable(unittest.TestCase):
     
     def setUp(self):
@@ -157,6 +170,12 @@ class test_HDF5Handler_ndarrays_resizable(unittest.TestCase):
             for row in self.ints:
                 h.append(row, 'testgroup/testset', **self.kwargs)
             self.assertTrue( isinstance(h.file['testgroup'], h5py._hl.group.Group) )
+
+    def test_hdf5file_dataset_creation(self):
+        with HDF5Handler(self.filename) as h:
+            for row in self.ints:
+                h.append(row, 'test', **self.kwargs) 
+            self.assertTrue(isinstance(h.file['test'], h5py._hl.dataset.Dataset))
             
     def test_group_and_dataset_creation(self):
         with HDF5Handler(self.filename) as h:
@@ -165,35 +184,31 @@ class test_HDF5Handler_ndarrays_resizable(unittest.TestCase):
             self.assertTrue( isinstance(h.file['testgroup/testset'], h5py._hl.dataset.Dataset) )
             self.assertTrue( isinstance(h.file['testgroup']['testset'], h5py._hl.dataset.Dataset) )
 
-    def test_hdf5file_write_ints(self):
+    def test_group_creation_after_closing(self):
         with HDF5Handler(self.filename) as h:
             for row in self.ints:
-                h.append(row, 'test', **self.kwargs) 
-            self.assertTrue(isinstance(h.file['test'], h5py._hl.dataset.Dataset))
+                h.append(row, 'testgroup/testset', **self.kwargs)
 
-    def test_hdf5file_write_flts(self):
-        with HDF5Handler(self.filename) as h:
-            for row in self.floats:
-                h.append(row, 'test', **self.kwargs) 
-            self.assertTrue(isinstance(h.file['test'], h5py._hl.dataset.Dataset))
-
-    def test_sum_ints(self):
-        with HDF5Handler(self.filename) as h:
-            for row in self.ints:
-                h.append(row, 'test', **self.kwargs) 
-            self.assertEqual(numpy.sum(self.ints), h.file['test'].value.sum())
+        f = h5py.File(self.filename)
+        self.assertTrue( isinstance(f['testgroup'], h5py._hl.group.Group) )
         
-    def test_sum_flts_almostequal(self):
+    def test_hdf5file_dataset_creation_after_closing(self):
         with HDF5Handler(self.filename) as h:
-            for row in self.floats:
+            for row in self.ints:
                 h.append(row, 'test', **self.kwargs) 
-            self.assertAlmostEqual(numpy.sum(self.floats), h.file['test'].value.sum(), places=5)
+            self.assertTrue(isinstance(h.file['test'], h5py._hl.dataset.Dataset))
 
-    def test_sum_flts_equal(self):
+        f = h5py.File(self.filename)
+        self.assertTrue( isinstance(f['test'], h5py._hl.dataset.Dataset) )
+            
+    def test_group_and_dataset_creation_after_closing(self):
         with HDF5Handler(self.filename) as h:
-            for row in self.floats:
-                h.append(row, 'test', **self.kwargs) 
-            self.assertEqual(numpy.sum(self.floats), h.file['test'].value.sum())
+            for row in self.ints:
+                h.append(row,'testgroup/testset', **self.kwargs)
+
+        f = h5py.File(self.filename)
+        self.assertTrue( isinstance(f['testgroup/testset'], h5py._hl.dataset.Dataset) )
+        self.assertTrue( isinstance(f['testgroup']['testset'], h5py._hl.dataset.Dataset) )
 
     def test_multiple_datasets(self):
         ndarrA =  numpy.ones(10000*3).reshape(10000, 3)
@@ -207,6 +222,94 @@ class test_HDF5Handler_ndarrays_resizable(unittest.TestCase):
             self.assertEqual(numpy.sum(ndarrA), h.file['testB'].value.sum())
             self.assertEqual(numpy.sum(ndarrA), h.file['testC'].value.sum())
             self.assertEqual(3, len(h.file.keys()) )
+   
+    def test_flushbuffers(self):
+        ndarr = numpy.ones(12345*3).reshape(12345, 3)
+
+        with HDF5Handler(self.filename) as h:
+            for row in ndarr:
+                h.append(row, 'test', **self.kwargs) 
+
+        f = h5py.File(self.filename)
+        self.assertEqual(numpy.sum(ndarr), f['test'].value.sum())
+ 
+    def test_trimming(self):
+        ndarr = numpy.ones(12345*3).reshape(12345, 3)
+
+        with HDF5Handler(self.filename) as h:
+            for row in ndarr:
+                h.append(row, 'test', **self.kwargs) 
+
+        f = h5py.File(self.filename)
+        self.assertEqual(ndarr.shape, f['test'].shape)
+
+    def test_flushbuffers_and_trim(self):
+        ndarr = numpy.ones(12345*3).reshape(12345, 3)
+
+        with HDF5Handler(self.filename) as h:
+            for row in ndarr:
+                h.append(row, 'test', **self.kwargs) 
+
+        f = h5py.File(self.filename)
+        self.assertEqual(numpy.sum(ndarr), f['test'].value.sum())
+        self.assertEqual(ndarr.shape, f['test'].shape)
+
+    #####################   Value tests  ####################
+    def test_sum_ints(self):
+        with HDF5Handler(self.filename) as h:
+            for row in self.ints:
+                h.append(row, 'test', **self.kwargs) 
+            self.assertEqual(numpy.sum(self.ints), h.file['test'].value.sum())
+
+    def test_sum_flts_almostequal6(self):
+        with HDF5Handler(self.filename) as h:
+            for row in self.floats:
+                h.append(row, 'test', **self.kwargs) 
+            self.assertAlmostEqual(numpy.sum(self.floats), h.file['test'].value.sum(), places=6)
+        
+    def test_sum_flts_almostequal5(self):
+        with HDF5Handler(self.filename) as h:
+            for row in self.floats:
+                h.append(row, 'test', **self.kwargs) 
+            self.assertAlmostEqual(numpy.sum(self.floats), h.file['test'].value.sum(), places=5)
+
+    def test_sum_flts_almostequal4(self):
+        with HDF5Handler(self.filename) as h:
+            for row in self.floats:
+                h.append(row, 'test', **self.kwargs) 
+            self.assertAlmostEqual(numpy.sum(self.floats), h.file['test'].value.sum(), places=4)
+
+    def test_sum_ints_after_closing(self):
+        with HDF5Handler(self.filename) as h:
+            for row in self.ints:
+                h.append(row, 'test', **self.kwargs) 
+
+        f = h5py.File(self.filename)
+        self.assertEqual(numpy.sum(self.ints), f['test'].value.sum())
+
+    def test_sum_flts_almostequal6_after_closing(self):
+        with HDF5Handler(self.filename) as h:
+            for row in self.floats:
+                h.append(row, 'test', **self.kwargs) 
+
+        f = h5py.File(self.filename)
+        self.assertAlmostEqual(numpy.sum(self.floats), f['test'].value.sum(), places=6)
+
+    def test_sum_flts_almostequal5_after_closing(self):
+        with HDF5Handler(self.filename) as h:
+            for row in self.floats:
+                h.append(row, 'test', **self.kwargs) 
+
+        f = h5py.File(self.filename)
+        self.assertAlmostEqual(numpy.sum(self.floats), f['test'].value.sum(), places=5)
+
+    def test_sum_flts_almostequal4_after_closing(self):
+        with HDF5Handler(self.filename) as h:
+            for row in self.floats:
+                h.append(row, 'test', **self.kwargs) 
+
+        f = h5py.File(self.filename)
+        self.assertAlmostEqual(numpy.sum(self.floats), f['test'].value.sum(), places=4)
 
         
     def tearDown(self):
