@@ -9,7 +9,7 @@ from amuse.units.nbody_system import nbody_to_si
 
 from systems import sun_and_earth
 
-from hdf5utils import HDF5Handler
+from hdf5utils import HDF5HandlerAmuse
 
 def main():
     """
@@ -34,11 +34,11 @@ def evolve_system(particles):
     integrator = Hermite(nbody_to_si(particles.total_mass(), 1 | units.AU))
     integrator.particles.add_particles(particles)
 
-    with HDF5Handler(args.filename, max_length=len(times)) as h:
-        for t in times:
+    with HDF5HandlerAmuse(args.filename) as h:
+        for i, t in enumerate(times):
             integrator.evolve_model(t)
-            h.store('pos', integrator.particles.position)
-            h.store('vel', integrator.particles.velocity)
+            h.append(integrator.particles.position, 'positie')
+            h.append(integrator.particles.velocity, 'snelheid')
 
     integrator.stop()
 
