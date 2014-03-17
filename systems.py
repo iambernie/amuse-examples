@@ -52,7 +52,7 @@ def twobodies_circular(mass1, mass2, sma):
     velocity = angular_frequency * sma
 
     position_orbiting_body = [sma.value_in(sma.unit), 0, 0] | sma.unit
-    velocity_orbiting_body =  [velocity.value_in(velocity.unit), 0, 0] | velocity.unit
+    velocity_orbiting_body =  [0, velocity.value_in(velocity.unit), 0] | velocity.unit
 
     central = bodies[0]
     central.mass = mass1
