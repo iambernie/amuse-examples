@@ -43,7 +43,7 @@ def main():
     m = args.minmass
     o = args.orbitmass
     res = args.resolution
-    step = args.stepsize|u.day
+    step = args.stepsize |u.day
 
     assert M>m
 
@@ -72,6 +72,7 @@ def main():
                 datahandler.file.flush()
 
 def semimajoraxis_from_binary(binary, G=constants.G):
+    """ Calculates the semimajoraxis for a binary system. """
 
     if len(binary) != 2:
         raise Exception("Expects binary")
@@ -114,6 +115,9 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence, datahan
     """
     integrator = Hermite(nbody_to_si(particles.total_mass(), 1 | u.AU))
     integrator.particles.add_particles(particles)
+
+    p = particles[0].period0
+    datahandler.append([p.number] | p.unit, h5path+"period0")
 
     for mass, time in zip(mass_sequence, time_sequence):
         integrator.evolve_model(time)
