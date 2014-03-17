@@ -16,24 +16,24 @@ def main():
 
     """
 
-    init_twobodies = [twobodies_circular(i |u.MSun, 0.1|u.MSun, 1|u.AU) for i in range(1, 6)]
+    init_twobodies = [twobodies_circular(i |u.MSun, 0.1|u.MSun, 1|u.AU) for i in range(1, 4)]
 
     with HDF5HandlerAmuse(args.filename) as datahandler:
         for bodies in init_twobodies:
             print(bodies)
-            masslosstimes = (numpy.linspace(0.1, 1, 10)) * bodies[0].period0
+            masslosstimes = (numpy.linspace(0.1, 3, 10)) * bodies[0].period0
 
             for time in masslosstimes:
-                print(time.in_(u.yr))
                 mass_sequence, time_sequence = massloss_evolution(time, bodies[0].mass)
-
-                print("totalsteps {}".format(len(mass_sequence)))
                 assert len(time_sequence) == len(mass_sequence)
 
+                print(time.in_(u.yr), "totalsteps {}".format(len(mass_sequence)))
+
                 evolve_system_with_massloss(bodies, mass_sequence, time_sequence, datahandler)
+                datahandler.file.flush()
 
 
-def massloss_evolution(endtime, initmass, mf=0.5, step=1|u.day):
+def massloss_evolution(endtime, initmass, mf=0.5, step=1.0|u.day):
     """
     initmass : initial mass 
     mf : fraction of initmass at endtime
@@ -56,7 +56,7 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence, datahan
 
     """
     #TODO: need a better naming system here 
-    setname = "/"+str(particles[0].mass.number)+"/"+str(len(mass_sequence))+"/"
+    setname = "/"+str(int(particles[0].mass.number))+"/"+str(len(mass_sequence))+"/"
 
     integrator = Hermite(nbody_to_si(particles.total_mass(), 1 | u.AU))
     integrator.particles.add_particles(particles)
