@@ -39,11 +39,15 @@ def main():
     └── system_03
 
     """
-    m = args.maxratio
+    M = args.maxmass
+    m = args.minmass
+    o = args.orbitmass
     res = args.resolution
     step = args.stepsize|u.day
 
-    init_twobodies = [twobodies_circular(i|u.MSun, 1|u.MSun, 1|u.AU) for i in range(1, m)]
+    assert M>m
+
+    init_twobodies = [twobodies_circular(i|u.MSun, o|u.MSun, 1|u.AU) for i in range(m, M)]
 
     with HDF5HandlerAmuse(args.filename) as datahandler:
 
@@ -143,7 +147,9 @@ def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f','--filename', metavar="HDF5 FILENAME")
     parser.add_argument('-r','--resolution', type=int, default=4)
-    parser.add_argument('-m','--maxratio', type=int, default=3)
+    parser.add_argument('--maxmass', type=int, default=3, help="Max mass of central body in MSun")
+    parser.add_argument('--minmass', type=int, default=1, help="Min mass of central body in MSun")
+    parser.add_argument('--orbitmass', type=int, default=1, help="Mass of the orbiting body in MSun")
     parser.add_argument('-s','--stepsize', type=float, metavar="IN_DAYS", default=2)
     args = parser.parse_args()
     return args
