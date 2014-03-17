@@ -4,6 +4,7 @@
 import argparse
 import numpy
 
+from amuse.units import constants
 from amuse.units import units as u
 from amuse.community.hermite0.interface import Hermite
 from amuse.units.nbody_system import nbody_to_si
@@ -38,7 +39,11 @@ def main():
     └── system_03
 
     """
-    init_twobodies = [twobodies_circular(i|u.MSun, 1|u.MSun, 1|u.AU) for i in range(1, 20)]
+    m = args.maxratio
+    res = args.resolution
+    step = args.stepsize|u.day
+
+    init_twobodies = [twobodies_circular(i|u.MSun, 1|u.MSun, 1|u.AU) for i in range(1, m)]
 
     with HDF5HandlerAmuse(args.filename) as datahandler:
 
@@ -47,7 +52,7 @@ def main():
             sys_str = "system_"+str(syscount).zfill(2) 
             syscount += 1 
 
-            masslosstimes = (numpy.linspace(0.1, 3, 50)) * bodies[0].period0
+            masslosstimes = (numpy.linspace(0.1, 3, res)) * bodies[0].period0
 
             seqcount = 0
             for time in masslosstimes:
@@ -55,12 +60,26 @@ def main():
                 h5path = "/"+sys_str+"/"+seq_str+"/"
                 seqcount += 1
 
-                mass_sequence, time_sequence = massloss_evolution(time, bodies[0].mass)
+                mass_sequence, time_sequence = massloss_evolution(time, bodies[0].mass, step=step)
                 assert len(time_sequence) == len(mass_sequence)
                 print(h5path, time.in_(u.yr), "totalsteps {}".format(len(mass_sequence)))
 
                 evolve_system_with_massloss(bodies, mass_sequence, time_sequence, datahandler, h5path)
                 datahandler.file.flush()
+
+def semimajoraxis_from_binary(binary, G=constants.G):
+
+    if len(binary) != 2:
+        raise Exception("Expects binary")
+
+    else:
+        total_mass = binary.mass.sum()
+        position = binary[1].position - binary[0].position
+        velocity = binary[1].velocity - binary[0].velocity
+
+    specific_energy = (1.0/2.0)*velocity.lengths_squared() - G*total_mass/position.lengths()
+    semimajor_axis = -G*total_mass/(2.0*specific_energy)
+    return semimajor_axis
 
 
 def massloss_evolution(endtime, initmass, mf=0.5, step=2.0|u.day):
@@ -103,7 +122,11 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence, datahan
         datahandler.append(integrator.particles.mass, h5path+"mass")
 
         #These need to be casted to VectorQuantities because HDF5Handler doesn't support objects w/o .shape yet.
-        datahandler.append([time.number]| time.unit, h5path+"time")
+        datahandler.append([time.number] | time.unit, h5path+"time")
+
+        sma = semimajoraxis_from_binary(integrator.particles)
+
+        datahandler.append([sma.number] | sma.unit, h5path+"sma")
 
         #FIXME: these raise IOErrors, find out why and where.
         #K = integrator.particles.kinetic_energy()
@@ -119,6 +142,9 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence, datahan
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f','--filename', metavar="HDF5 FILENAME")
+    parser.add_argument('-r','--resolution', type=int, default=4)
+    parser.add_argument('-m','--maxratio', type=int, default=3)
+    parser.add_argument('-s','--stepsize', type=float, metavar="IN_DAYS", default=2)
     args = parser.parse_args()
     return args
 
