@@ -55,7 +55,8 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence, datahan
     mass_sequence: sequence of masses
 
     """
-    setname = "/"+str(numpy.random.randint(0, 200))+"/"
+    #TODO: need a better naming system here 
+    setname = "/"+str(particles[0].mass.number)+"/"+str(len(mass_sequence))+"/"
 
     integrator = Hermite(nbody_to_si(particles.total_mass(), 1 | u.AU))
     integrator.particles.add_particles(particles)
