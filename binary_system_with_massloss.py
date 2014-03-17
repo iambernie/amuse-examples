@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import argparse
 import numpy
 
@@ -14,30 +17,58 @@ def main():
     """
     Simulates a binary system with linear massloss.
 
-    """
+    Writes data to hdf5 using the following structure:
 
-    init_twobodies = [twobodies_circular(i |u.MSun, 0.1|u.MSun, 1|u.AU) for i in range(1, 4)]
+    /
+    ├── system_00
+    │   ├── sequence_00
+    │   │   ├── center_of_mass
+    │   │   ├── center_of_mass_velocity
+    │   │   ├── kinetic_energy
+    │   │   ├── mass
+    │   │   ├── position
+    │   │   ├── potential_energy
+    │   │   ├── total_energy
+    │   │   └── velocity
+    │   ├── sequence_01
+    │   ├── sequence_02
+    │   └── sequence_03
+    ├── system_01
+    ├── system_02
+    └── system_03
+
+    """
+    init_twobodies = [twobodies_circular(i|u.MSun, 1|u.MSun, 1|u.AU) for i in range(1, 20)]
 
     with HDF5HandlerAmuse(args.filename) as datahandler:
-        for bodies in init_twobodies:
-            print(bodies)
-            masslosstimes = (numpy.linspace(0.1, 3, 10)) * bodies[0].period0
 
+        syscount = 0
+        for bodies in init_twobodies:
+            sys_str = "system_"+str(syscount).zfill(2) 
+            syscount += 1 
+
+            masslosstimes = (numpy.linspace(0.1, 3, 50)) * bodies[0].period0
+
+            seqcount = 0
             for time in masslosstimes:
+                seq_str = "sequence_"+str(seqcount).zfill(2)
+                h5path = "/"+sys_str+"/"+seq_str+"/"
+                seqcount += 1
+
                 mass_sequence, time_sequence = massloss_evolution(time, bodies[0].mass)
                 assert len(time_sequence) == len(mass_sequence)
+                print(h5path, time.in_(u.yr), "totalsteps {}".format(len(mass_sequence)))
 
-                print(time.in_(u.yr), "totalsteps {}".format(len(mass_sequence)))
-
-                evolve_system_with_massloss(bodies, mass_sequence, time_sequence, datahandler)
+                evolve_system_with_massloss(bodies, mass_sequence, time_sequence, datahandler, h5path)
                 datahandler.file.flush()
 
 
-def massloss_evolution(endtime, initmass, mf=0.5, step=1.0|u.day):
+def massloss_evolution(endtime, initmass, mf=0.5, step=2.0|u.day):
     """
     initmass : initial mass 
     mf : fraction of initmass at endtime
     endtime : time over which massloss should occur
+    step: timestep
 
     """
     assert endtime > 2*step
@@ -46,43 +77,48 @@ def massloss_evolution(endtime, initmass, mf=0.5, step=1.0|u.day):
     return massrange, timerange
 
 
-def evolve_system_with_massloss(particles, mass_sequence, time_sequence, datahandler):
+def evolve_system_with_massloss(particles, mass_sequence, time_sequence, datahandler, h5path):
     """
 
     Parameters
     ----------
     particles: a two-body system 
     mass_sequence: sequence of masses
+    time_sequence: sequence of times
+    datahandler: HDF5HandlerAmuse context manager
+    h5path: unix-style path for this simulation's dataset
 
     """
-    #TODO: need a better naming system here 
-    setname = "/"+str(int(particles[0].mass.number))+"/"+str(len(mass_sequence))+"/"
-
     integrator = Hermite(nbody_to_si(particles.total_mass(), 1 | u.AU))
     integrator.particles.add_particles(particles)
 
     for mass, time in zip(mass_sequence, time_sequence):
         integrator.evolve_model(time)
         integrator.particles[0].mass = mass 
-        datahandler.append(integrator.particles.position, setname+"position")
-        datahandler.append(integrator.particles.velocity, setname+"velocity")
-        datahandler.append(integrator.particles.mass, setname+"mass")
 
-        #This is because HDF5Handler doesn't support objects w/o .shape yet.
-        datahandler.append([time.number]| time.unit, setname+"time")
+        datahandler.append(integrator.particles.center_of_mass(), h5path+"center_of_mass")
+        datahandler.append(integrator.particles.center_of_mass_velocity(), h5path+"center_of_mass_velocity")
+        datahandler.append(integrator.particles.position, h5path+"position")
+        datahandler.append(integrator.particles.velocity, h5path+"velocity")
+        datahandler.append(integrator.particles.mass, h5path+"mass")
+
+        #These need to be casted to VectorQuantities because HDF5Handler doesn't support objects w/o .shape yet.
+        datahandler.append([time.number]| time.unit, h5path+"time")
+
+        #FIXME: these raise IOErrors, find out why and where.
+        #K = integrator.particles.kinetic_energy()
+        #U = integrator.particles.potential_energy()
+        #E = integrator.get_total_energy()
+        #datahandler.append([K]| K.unit , h5path+"kinetic_energy")
+        #datahandler.append([U]| U.unit , h5path+"potential_energy")
+        #datahandler.append([E]| E.unit , h5path+"total_energy")
      
     integrator.stop()
 
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-
     parser.add_argument('-f','--filename', metavar="HDF5 FILENAME")
-    parser.add_argument('-s','--steps', metavar="NR_OF_STEPS", type=int,
-                        default=50)
-    parser.add_argument('-t','--time', metavar="END_TIME", type=float,
-                        default=50, help="in years")
-
     args = parser.parse_args()
     return args
 
