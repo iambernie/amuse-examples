@@ -153,7 +153,7 @@ def get_arguments():
     parser.add_argument('-r','--resolution', type=int, default=4)
     parser.add_argument('--maxmass', type=int, default=3, help="Max mass of central body in MSun")
     parser.add_argument('--minmass', type=int, default=1, help="Min mass of central body in MSun")
-    parser.add_argument('--orbitmass', type=int, default=1, help="Mass of the orbiting body in MSun")
+    parser.add_argument('--orbitmass', type=float, default=1, help="Mass of the orbiting body in MSun")
     parser.add_argument('-s','--stepsize', type=float, metavar="IN_DAYS", default=2)
     args = parser.parse_args()
     return args
