@@ -12,7 +12,7 @@ def main():
     #unit = eval(units_string, core.__dict__)
 
     plot_a_vs_deltat(f)
-    #plot_position(f)
+    plot_position(f)
 
 def plot_a_vs_deltat(f):
     fig = plt.figure()
@@ -52,15 +52,37 @@ def plot_a_vs_deltat(f):
 
 def plot_position(f):
     """ Just testing, remove later """
-    position = f['system_18']['sequence_30']['position']
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
+    systems = f.values()
 
-    ax.scatter(position[:,0,0], position[:,0,1], color='g')
-    ax.scatter(position[:,1,0], position[:,1,1], color='b')
+    for s in systems:
+        sequences = s.values()
 
-    plt.show(fig)
+        for seq in sequences:
+
+            position = seq['position']
+            sma = seq['sma'][-1]
+            delta_t = seq['time'][-1]
+            #period0 = seq['period0'][0]
+
+            mass0 = sequences[0]['mass'][0][0]
+            mass1 = sequences[0]['mass'][0][1]
+
+            massratio = round(mass0/mass1, 1)
+
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.scatter(position[:,0,0], position[:,0,1], color='g')
+            ax.scatter(position[:,1,0], position[:,1,1], color='b')
+            #ax.plot(x, y, marker='o', markersize=4, label=str(s.name)+ "  massratio central/orbiting: {}".format(massratio) )
+            ax.set_xlabel('delta_t / period0')
+            ax.set_ylabel('a / a0')
+
+            ax.legend()
+
+            name = str(s.name)+"_"+str(delta_t)
+            plt.savefig(fig, 'temp/'+name+".png")
+
 
 
 def get_arguments():
