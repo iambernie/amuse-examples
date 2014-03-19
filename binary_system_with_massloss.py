@@ -42,6 +42,7 @@ def main():
     M = args.maxmass
     m = args.minmass
     o = args.orbitmass
+    t = args.deltat
     res = args.resolution
     step = args.stepsize |u.day
 
@@ -56,7 +57,7 @@ def main():
             sys_str = "system_"+str(syscount).zfill(2) 
             syscount += 1 
 
-            masslosstimes = (numpy.linspace(0.1, 3, res)) * bodies[0].period0
+            masslosstimes = (numpy.linspace(0.1, t, res)) * bodies[0].period0
 
             seqcount = 0
             for time in masslosstimes:
@@ -144,6 +145,7 @@ def get_arguments():
     parser.add_argument('--minmass', type=int, default=1, help="Min mass of central body in MSun")
     parser.add_argument('--orbitmass', type=float, default=1, help="Mass of the orbiting body in MSun")
     parser.add_argument('-s','--stepsize', type=float, metavar="IN_DAYS", default=2)
+    parser.add_argument('-t','--deltat', type=float,  default=3)
     args = parser.parse_args()
     return args
 
