@@ -42,6 +42,7 @@ def main():
     M = args.maxmass
     m = args.minmass
     o = args.orbitmass
+    t = args.deltat
     res = args.resolution
     step = args.stepsize |u.day
 
@@ -56,7 +57,7 @@ def main():
             sys_str = "system_"+str(syscount).zfill(2) 
             syscount += 1 
 
-            masslosstimes = (numpy.linspace(0.1, 3, res)) * bodies[0].period0
+            masslosstimes = (numpy.linspace(0.1, t, res)) * bodies[0].period0
 
             seqcount = 0
             for time in masslosstimes:
@@ -116,8 +117,7 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence, datahan
     integrator = Hermite(nbody_to_si(particles.total_mass(), 1 | u.AU))
     integrator.particles.add_particles(particles)
 
-    p = particles[0].period0
-    datahandler.append([p.number] | p.unit, h5path+"period0")
+    datahandler.append(particles[0].period0, h5path+"period0")
 
     for mass, time in zip(mass_sequence, time_sequence):
         integrator.evolve_model(time)
@@ -128,21 +128,11 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence, datahan
         datahandler.append(integrator.particles.position, h5path+"position")
         datahandler.append(integrator.particles.velocity, h5path+"velocity")
         datahandler.append(integrator.particles.mass, h5path+"mass")
-
-        #These need to be casted to VectorQuantities because HDF5Handler doesn't support objects w/o .shape yet.
-        datahandler.append([time.number] | time.unit, h5path+"time")
-
-        sma = semimajoraxis_from_binary(integrator.particles)
-
-        datahandler.append([sma.number] | sma.unit, h5path+"sma")
-
-        #FIXME: these raise IOErrors, find out why and where.
-        #K = integrator.particles.kinetic_energy()
-        #U = integrator.particles.potential_energy()
-        #E = integrator.get_total_energy()
-        #datahandler.append([K]| K.unit , h5path+"kinetic_energy")
-        #datahandler.append([U]| U.unit , h5path+"potential_energy")
-        #datahandler.append([E]| E.unit , h5path+"total_energy")
+        datahandler.append(integrator.particles.kinetic_energy(), h5path+"kinetic_energy")
+        datahandler.append(integrator.particles.potential_energy(), h5path+"potential_energy")
+        datahandler.append(integrator.get_total_energy(), h5path+"total_energy")
+        datahandler.append(time, h5path+"time")
+        datahandler.append(semimajoraxis_from_binary(integrator.particles), h5path+"sma")
      
     integrator.stop()
 
@@ -155,6 +145,7 @@ def get_arguments():
     parser.add_argument('--minmass', type=int, default=1, help="Min mass of central body in MSun")
     parser.add_argument('--orbitmass', type=float, default=1, help="Mass of the orbiting body in MSun")
     parser.add_argument('-s','--stepsize', type=float, metavar="IN_DAYS", default=2)
+    parser.add_argument('-t','--deltat', type=float,  default=3)
     args = parser.parse_args()
     return args
 
