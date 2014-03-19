@@ -5,11 +5,11 @@ try:
     from amuse.units import core
     from amuse.units import units
     from amuse.units.quantities import Quantity
+    from amuse.units.quantities import ScalarQuantity
+    from amuse.units.quantities import VectorQuantity
 except ImportError:
     pass
 
-import os
-import unittest
 import h5py
 import numpy 
 
@@ -35,7 +35,7 @@ class Dataset(object):
         """
         Parameters
         ----------
-        array: ndarray or list
+        array: ndarray
 
         """
         self.dbuffer.append(array)
@@ -111,11 +111,16 @@ class HDF5Handler(object):
         dset_path  : unix-style path ( 'group/datasetname' )
 
         """
+        if is_numeric(array):
+            ndarray = convert_to_ndarray(array)
+        else:
+            raise TypeError("{} is not supported".format(type(array)))
+
         if dset_path in self.index:
-            self.index[dset_path].append(array)
+            self.index[dset_path].append(ndarray)
         else:
             self.create_dset(dset_path, array, **kwargs) 
-            self.index[dset_path].append(array)
+            self.index[dset_path].append(ndarray)
 
     def create_dset(self, dset_path, array, chunksize=1000, blockfactor=100):
         """
@@ -140,13 +145,10 @@ class HDF5Handler(object):
         See h5py docs on chunked storage for more info.
 
         """
-        if isinstance(array, numpy.ndarray):
-            arr_shape = array.shape 
-        elif isinstance(array, list):
-            ndarray = numpy.array(list)
-            arr_shape = len(ndarray) 
+        if is_numeric(array):
+            arr_shape = get_shape(array)
         else:
-            raise TypeError("{} not supported".format(type(array)))
+            raise TypeError("{} is not supported".format(type(array)))
 
         blocksize = blockfactor * chunksize 
 
@@ -177,14 +179,11 @@ class HDF5HandlerAmuse(HDF5Handler):
         dset_path  : unix-style path ( 'group/datasetname' )
 
         """
-        if isinstance(array, Quantity):
-            ndarray = array.value_in(array.unit) 
-        elif isinstance(array, numpy.ndarray):
-            ndarray = array 
-        elif isinstance(array, list):
-            ndarray = numpy.array(list)
+
+        if is_numeric(array):
+            ndarray = convert_to_ndarray(array)
         else:
-            raise TypeError("{} not supported ".format(type(array)))
+            raise TypeError("{} is not supported".format(type(array)))
 
 
         if dset_path in self.index:
@@ -201,7 +200,15 @@ class HDF5HandlerAmuse(HDF5Handler):
         Parameters
         ----------
         dset_path: unix-style path
-        array: array to append
+        array: 'array' to append. The following should be appendable:
+            ps : python scalars
+            pv : python list of scalars
+            pt : python tuple of scalars
+            ns : numpy scalars (int8, int16, .., float16, float32, etc..
+            nv : numpy ndarrays
+            As : amuse scalars (ScalarQuantity)
+            Av : amuse arrays (VectorQuantity)
+
         blockfactor: used to calculate blocksize. (blocksize = blockfactor*chunksize)
         chunksize: determines the buffersize. (e.g.: if chunksize = 1000, the 
         buffer will be written to the dataset after a 1000 HDF5Handler.append() calls. 
@@ -216,20 +223,15 @@ class HDF5HandlerAmuse(HDF5Handler):
         See h5py docs on chunked storage for more info.
 
         """
-        if isinstance(array, Quantity):
-            refstring = array.unit.to_simple_form().reference_string()
-            ndarray = array.value_in(array.unit) 
-            arr_shape = array.shape 
 
-        elif isinstance(array, numpy.ndarray):
-            arr_shape = array.shape 
+        if is_numeric(array):
+            arr_shape = get_shape(array)
 
-        elif isinstance(array, list):
-            ndarray = numpy.array(list)
-            arr_shape = len(ndarray) 
-
+            if isinstance(array, Quantity):
+                refstring = array.unit.to_simple_form().reference_string() 
         else:
-            raise TypeError("{} not supported ".format(type(array)))
+            raise TypeError("{} is not supported".format(type(array)))
+
 
         blocksize = blockfactor * chunksize 
 
@@ -237,7 +239,6 @@ class HDF5HandlerAmuse(HDF5Handler):
         maxshape = sum(((None,), arr_shape), ())
 
         dsetkw = dict(chunks=chunkshape, maxshape=maxshape)
-                                       
         init_shape = sum(((blocksize,), arr_shape), ())
 
         dset = self.file.create_dataset(dset_path, shape=init_shape, **dsetkw)
@@ -248,4 +249,63 @@ class HDF5HandlerAmuse(HDF5Handler):
             pass
 
         self.index.update({dset_path: Dataset(dset)})
+
+def convert_to_ndarray(array):
+    #TODO: this is too similar too get_shape. Rethink implementation
+    if is_scalar(array):
+        scalar = array
+        if isinstance(scalar, ScalarQuantity):
+            ndarray = numpy.array([scalar.number])
+        else:
+            ndarray = numpy.array([scalar])
+
+    else: #convert tuple/list/ndarray/vectorquantity
+        if isinstance(array, VectorQuantity):
+            ndarray = ndarray = array.value_in(array.unit)
+        elif isinstance(array, numpy.ndarray):
+            ndarray = array
+        elif isinstance(array, (list, tuple)):
+            ndarray = numpy.array(array)
+        else:
+            raise TypeError
+
+    return ndarray
+
+def get_shape(array):
+    """
+    returns shape of array or return (1,) if it is a scalar.
+    """
+    if is_scalar(array):
+        arr_shape = (1,)
+    else: 
+        if isinstance(array, VectorQuantity):
+            arr_shape = array.shape 
+        elif isinstance(array, numpy.ndarray):
+            arr_shape = array.shape 
+        elif isinstance(array, (list, tuple)):
+            #probably easiest way to determine shape of n-dimensionallists/tuples
+            ndarray = numpy.array(array)
+            arr_shape = ndarray.shape
+        else:
+            raise TypeError("shape of {} could not be determined".format(type(array)))
+    return arr_shape
+
+
+#TODO: kind of general stuff, maybe move elsewhere
+def is_numeric(number):
+    try:
+        number/1.0
+        return True
+    except TypeError as exc:
+        print(exc)
+        return False
+
+def is_scalar(array):
+    try:
+        len(array)
+        return False
+    except TypeError:
+        return True
+
+
 
