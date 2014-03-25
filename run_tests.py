@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 # run_tests.py
 
-from amuse.units import units
-
 import os
 import h5py
 import numpy 
 import unittest
-from hdf5utils import HDF5Handler
-from hdf5utils import HDF5HandlerAmuse
+
+from amuse.units import units
+
+from ext.hdf5utils import HDF5Handler
+from ext.hdf5utils import HDF5HandlerAmuse
             
 
 class test_HDF5Handler_ndarrays(unittest.TestCase):
@@ -280,7 +281,7 @@ class test_HDF5HandlerAmuse(test_HDF5Handler_ndarrays):
 
 
 if __name__ == "__main__":
-    from colored import ColoredTextTestRunner
+    from ext.colored import ColoredTextTestRunner
     unittest.main(verbosity=2, testRunner=ColoredTextTestRunner)
 
 
