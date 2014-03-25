@@ -4,13 +4,13 @@
 import argparse
 import numpy
 
-from amuse.units import constants
 from amuse.units import units as u
 from amuse.community.hermite0.interface import Hermite
 from amuse.units.nbody_system import nbody_to_si
 
-from systems import twobodies_circular
-from hdf5utils import HDF5HandlerAmuse
+from ext.systems import twobodies_circular
+from ext.hdf5utils import HDF5HandlerAmuse
+from ext.misc import semimajoraxis_from_binary
 
 #TODO: PEP8-ify
 
@@ -72,21 +72,6 @@ def main():
                 evolve_system_with_massloss(bodies, mass_sequence, time_sequence, datahandler, h5path)
                 datahandler.file.flush()
 
-def semimajoraxis_from_binary(binary, G=constants.G):
-    """ Calculates the semimajoraxis for a binary system. """
-
-    if len(binary) != 2:
-        raise Exception("Expects binary")
-
-    else:
-        total_mass = binary.mass.sum()
-        position = binary[1].position - binary[0].position
-        velocity = binary[1].velocity - binary[0].velocity
-
-    specific_energy = (1.0/2.0)*velocity.lengths_squared() - G*total_mass/position.lengths()
-    semimajor_axis = -G*total_mass/(2.0*specific_energy)
-    return semimajor_axis
-
 
 def massloss_evolution(endtime, initmass, mf=0.5, step=2.0|u.day):
     """
@@ -139,7 +124,7 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence, datahan
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f','--filename', metavar="HDF5 FILENAME")
+    parser.add_argument('-f','--filename', required=True, metavar="HDF5 FILENAME")
     parser.add_argument('-r','--resolution', type=int, default=4)
     parser.add_argument('--maxmass', type=int, default=3, help="Max mass of central body in MSun")
     parser.add_argument('--minmass', type=int, default=1, help="Min mass of central body in MSun")
