@@ -3,18 +3,25 @@ import time
  
 _COLOR = {'green': "\x1b[32;01m",
           'red': "\x1b[31;01m",
+          'yellow': "\x1b[33;01m",
           'reset': "\x1b[0m"
           }
+
+def green_str(text):
+    """Return green text."""
+    global _COLOR
+    return _COLOR['green'] + text + _COLOR['reset']
  
 def red_str(text):
     """Return red text."""
     global _COLOR
     return _COLOR['red'] + text + _COLOR['reset']
- 
-def green_str(text):
-    """Return green text."""
+
+def yel_str(text):
+    """Return yellow text."""
     global _COLOR
-    return _COLOR['green'] + text + _COLOR['reset']
+    return _COLOR['yellow'] + text + _COLOR['reset']
+ 
  
  
 class _ColoredTextTestResult(unittest._TextTestResult):
@@ -39,6 +46,13 @@ class _ColoredTextTestResult(unittest._TextTestResult):
             self.stream.writeln(red_str("FAIL"))
         elif self.dots:
             self.stream.write(red_str('F'))
+
+    def addExpectedFailure(self, test, err):
+        unittest.TestResult.addExpectedFailure(self, test, err)
+        if self.showAll:
+            self.stream.writeln(yel_str("Expected Failure"))
+        elif self.dots:
+            self.stream.write(yel_str('EF'))
  
     def printErrorList(self, flavour, errors):
         for test, err in errors:
