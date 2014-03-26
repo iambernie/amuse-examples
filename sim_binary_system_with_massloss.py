@@ -11,6 +11,7 @@ from amuse.units.nbody_system import nbody_to_si
 from ext.systems import twobodies_circular
 from ext.hdf5utils import HDF5HandlerAmuse
 from ext.misc import semimajoraxis_from_binary
+from ext.misc import eccentricity_from_binary
 
 #TODO: PEP8-ify
 
@@ -39,31 +40,29 @@ def main():
     └── system_03
 
     """
+    #TODO: lose all initial parameters such as M,m,o,seperation, t. Replace by mass-loss index.
     M = args.maxmass
     m = args.minmass
     o = args.orbitmass
+    seperation = args.seperation
     t = args.deltat
     res = args.resolution
     step = args.stepsize |u.day
 
     assert M>m
 
-    init_twobodies = [twobodies_circular(i|u.MSun, o|u.MSun, 1|u.AU) for i in range(m, M)]
+    init_twobodies = [twobodies_circular(i|u.MSun, o|u.MSun, seperation|u.AU) for i in range(m, M)]
 
     with HDF5HandlerAmuse(args.filename) as datahandler:
 
-        syscount = 0
-        for bodies in init_twobodies:
+        for syscount, bodies in enumerate(init_twobodies):
             sys_str = "system_"+str(syscount).zfill(2) 
-            syscount += 1 
 
             masslosstimes = (numpy.linspace(0.1, t, res)) * bodies[0].period0
 
-            seqcount = 0
-            for time in masslosstimes:
+            for seqcount, time in enumerate(masslosstimes):
                 seq_str = "sequence_"+str(seqcount).zfill(2)
                 h5path = "/"+sys_str+"/"+seq_str+"/"
-                seqcount += 1
 
                 mass_sequence, time_sequence = massloss_evolution(time, bodies[0].mass, step=step)
                 assert len(time_sequence) == len(mass_sequence)
@@ -105,6 +104,7 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence, datahan
     datahandler.append(particles[0].period0, h5path+"period0")
 
     for mass, time in zip(mass_sequence, time_sequence):
+        integrator.particles.move_to_center() 
         integrator.evolve_model(time)
         integrator.particles[0].mass = mass 
 
@@ -118,6 +118,7 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence, datahan
         datahandler.append(integrator.get_total_energy(), h5path+"total_energy")
         datahandler.append(time, h5path+"time")
         datahandler.append(semimajoraxis_from_binary(integrator.particles), h5path+"sma")
+        datahandler.append(eccentricity_from_binary(integrator.particles), h5path+"eccentricity")
      
     integrator.stop()
 
@@ -129,6 +130,7 @@ def get_arguments():
     parser.add_argument('--maxmass', type=int, default=3, help="Max mass of central body in MSun")
     parser.add_argument('--minmass', type=int, default=1, help="Min mass of central body in MSun")
     parser.add_argument('--orbitmass', type=float, default=1, help="Mass of the orbiting body in MSun")
+    parser.add_argument('--seperation', type=float, default=1, help="Initial seperation in AU")
     parser.add_argument('-s','--stepsize', type=float, metavar="IN_DAYS", default=2)
     parser.add_argument('-t','--deltat', type=float,  default=3)
     args = parser.parse_args()
