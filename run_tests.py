@@ -3,15 +3,15 @@
 
 from amuse.units import units
 from amuse.units import core
-from amuse.units.quantities import Quantity
 from amuse.units.quantities import VectorQuantity
 
 import os
 import h5py
 import numpy 
 import unittest
-from hdf5utils import HDF5Handler
-from hdf5utils import HDF5HandlerAmuse
+
+from ext.hdf5utils import HDF5Handler
+from ext.hdf5utils import HDF5HandlerAmuse
             
 
 class test_HDF5Handler_ndarrays(unittest.TestCase):
@@ -788,7 +788,7 @@ class test_HDF5HandlerAmuseUnits(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    from colored import ColoredTextTestRunner
+    from ext.colored import ColoredTextTestRunner
     unittest.main(verbosity=2, testRunner=ColoredTextTestRunner)
 
 
