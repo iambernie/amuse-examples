@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # run_tests.py
 
-
 import unittest
 import argparse
 import os
@@ -11,10 +10,16 @@ import numpy
 from ext.hdf5utils import HDF5Handler
 from ext.hdf5utils import HDF5HandlerAmuse
 from ext.colored import ColoredTextTestRunner
+
+from ext.misc import orbital_elements
             
+from amuse.units import constants
 from amuse.units import units
 from amuse.units import core
 from amuse.units.quantities import VectorQuantity
+from amuse.units.quantities import Quantity
+from amuse.ext.orbital_elements import new_binary_from_orbital_elements
+from amuse.ext.orbital_elements import orbital_elements_from_binary
 
 
 class test_HDF5Handler_ndarrays(unittest.TestCase):
@@ -22,10 +27,10 @@ class test_HDF5Handler_ndarrays(unittest.TestCase):
         self.Handler = HDF5Handler
         self.filename = 'test.hdf5'
 
-        self.ints1d = numpy.ones(12345*4)
-        self.floats1d = numpy.linspace(0, 4123, 10000*3)
-        self.ints = numpy.ones(12345*4).reshape(12345, 4)
-        self.floats = numpy.linspace(0, 4123, 10000*3).reshape(10000, 3)
+        self.ints1d = numpy.ones(12345*2)
+        self.floats1d = numpy.linspace(0, 4123, 10000*2)
+        self.ints = numpy.ones(12345*2).reshape(12345, 2)
+        self.floats = numpy.linspace(0, 4123, 10000*2).reshape(10000, 2)
 
         self.sumints1d = numpy.sum(self.ints1d)
         self.sumfloats1d = numpy.sum(self.floats1d)
@@ -273,10 +278,10 @@ class test_HDF5HandlerAmuse(test_HDF5Handler_ndarrays):
         self.Handler = HDF5HandlerAmuse
         self.filename = 'amusequantitiestest.hdf5'
         self.unit = units.AU
-        self.ints1d = numpy.ones(12345*4) |self.unit
-        self.floats1d = numpy.linspace(0, 4123, 10000*3) |self.unit
-        self.ints = numpy.ones(12345*4).reshape(12345, 4) |self.unit
-        self.floats = numpy.linspace(0, 4123, 10000*3).reshape(10000, 3) |self.unit
+        self.ints1d = numpy.ones(12345*2) |self.unit
+        self.floats1d = numpy.linspace(0, 4123, 10000*2) |self.unit
+        self.ints = numpy.ones(12345*2).reshape(12345, 2) |self.unit
+        self.floats = numpy.linspace(0, 4123, 10000*2).reshape(10000, 2) |self.unit
         self.sumints1d = numpy.sum(self.ints1d.value_in(self.unit))
         self.sumfloats1d = numpy.sum(self.floats1d.value_in(self.unit))
         self.sumints = numpy.sum(self.ints.value_in(self.unit))
@@ -797,6 +802,222 @@ class test_HDF5HandlerAmuseUnits(unittest.TestCase):
             pass
 
 
+class test_orbital_elements(unittest.TestCase):
+    def setUp(self):
+        self.places = 1
+
+    def test_elements_type(self):
+        new_binary = new_binary_from_orbital_elements
+
+        m = 1|units.MSun
+        sma = 1|units.AU
+        ecc = 0
+        true_anom = 0
+        inc = 0
+        long_ascnode = 0
+        argper = 0
+        G = constants.G
+        
+        binary = new_binary(m, m, sma,
+                            eccentricity=ecc,
+                            true_anomaly=true_anom,
+                            inclination=inc,
+                            longitude_of_the_ascending_node=long_ascnode,
+                            argument_of_periapsis=argper,
+                            G=G)
+
+
+        a, e, i, w, W, f = orbital_elements(binary)
+
+        self.assertTrue(isinstance(a, Quantity))
+        self.assertTrue(isinstance(e, float))
+        self.assertTrue(isinstance(i, float))
+        self.assertTrue(isinstance(w, float))
+        self.assertTrue(isinstance(W, float))
+        self.assertTrue(isinstance(f, float))
+        
+        
+    def test_in_reference_plane_circular(self):
+        new_binary = new_binary_from_orbital_elements
+
+        m = 1|units.MSun
+        sma = 1|units.AU
+        ecc = 0
+        true_anom = 0
+        inc = 0
+        long_ascnode = 0
+        argper = 0
+        G = constants.G
+        
+        binary = new_binary(m, m, sma,
+                            eccentricity=ecc,
+                            true_anomaly=true_anom,
+                            inclination=inc,
+                            longitude_of_the_ascending_node=long_ascnode,
+                            argument_of_periapsis=argper,
+                            G=G)
+
+        a, e, i, w, W, f = orbital_elements(binary)
+        self.assertAlmostEqual(a.number, sma.number, places=self.places)
+        self.assertAlmostEqual(e, ecc, places=self.places)
+        self.assertAlmostEqual(i, inc, places=self.places)
+        self.assertAlmostEqual(w, argper, places=self.places)
+        self.assertAlmostEqual(W, long_ascnode, places=self.places)
+        self.assertAlmostEqual(f, true_anom, places=self.places)
+
+    def test_in_reference_plane_eccentricity_elliptical(self):
+        new_binary = new_binary_from_orbital_elements
+
+        m = 1|units.MSun
+        sma = 1|units.AU
+        ecc = 0.5
+        true_anom = 0
+        inc = 0
+        long_ascnode = 0
+        argper = 0
+        G = constants.G
+        
+        binary = new_binary(m, m, sma,
+                            eccentricity=ecc,
+                            true_anomaly=true_anom,
+                            inclination=inc,
+                            longitude_of_the_ascending_node=long_ascnode,
+                            argument_of_periapsis=argper,
+                            G=G)
+
+        a, e, i, w, W, f = orbital_elements(binary)
+        self.assertAlmostEqual(a.number, sma.number, places=self.places)
+        self.assertAlmostEqual(e, ecc, places=self.places)
+        self.assertAlmostEqual(i, inc, places=self.places)
+        self.assertAlmostEqual(w, argper, places=self.places)
+        self.assertAlmostEqual(W, long_ascnode, places=self.places)
+        self.assertAlmostEqual(f, true_anom, places=self.places)
+
+    @unittest.expectedFailure
+    def test_in_reference_plane_eccentricity_parabolical(self):
+        new_binary = new_binary_from_orbital_elements
+
+        m = 1|units.MSun
+        sma = 1|units.AU
+        ecc = 1 
+        true_anom = 0
+        inc = 0
+        long_ascnode = 0
+        argper = 0
+        G = constants.G
+        
+        binary = new_binary(m, m, sma,
+                            eccentricity=ecc,
+                            true_anomaly=true_anom,
+                            inclination=inc,
+                            longitude_of_the_ascending_node=long_ascnode,
+                            argument_of_periapsis=argper,
+                            G=G)
+
+        a, e, i, w, W, f = orbital_elements(binary)
+        self.assertAlmostEqual(a.number, sma.number, places=self.places)
+        self.assertAlmostEqual(e, ecc, places=self.places)
+        self.assertAlmostEqual(i, inc, places=self.places)
+        self.assertAlmostEqual(w, argper, places=self.places)
+        self.assertAlmostEqual(W, long_ascnode, places=self.places)
+        self.assertAlmostEqual(f, true_anom, places=self.places)
+
+    def test_inclined_1(self):
+        new_binary = new_binary_from_orbital_elements
+
+        m = 1|units.MSun
+        sma = 1|units.AU
+        ecc = 0.5
+        true_anom = 1
+        inc = 10
+        long_ascnode = 1
+        argper = 1
+        G = constants.G
+        
+        binary = new_binary(m, m, sma,
+                            eccentricity=ecc,
+                            true_anomaly=true_anom,
+                            inclination=inc,
+                            longitude_of_the_ascending_node=long_ascnode,
+                            argument_of_periapsis=argper,
+                            G=G)
+
+        a, e, i, w, W, f = orbital_elements(binary)
+
+        self.assertAlmostEqual(a.number, sma.number, places=self.places)
+        self.assertAlmostEqual(e, ecc, places=self.places)
+        self.assertAlmostEqual(i, inc, places=self.places)
+        self.assertAlmostEqual(w, argper, places=self.places)
+        self.assertAlmostEqual(W, long_ascnode, places=self.places)
+        self.assertAlmostEqual(f, true_anom, places=self.places)
+
+    def test_inclined_2(self):
+        new_binary = new_binary_from_orbital_elements
+
+        m = 1|units.MSun
+        sma = 1|units.AU
+        ecc = 0.5
+        true_anom = 90
+        inc = 90
+        long_ascnode = 90
+        argper = 90
+        G = constants.G
+        
+        binary = new_binary(m, m, sma,
+                            eccentricity=ecc,
+                            true_anomaly=true_anom,
+                            inclination=inc,
+                            longitude_of_the_ascending_node=long_ascnode,
+                            argument_of_periapsis=argper,
+                            G=G)
+
+        a, e, i, w, W, f = orbital_elements(binary)
+
+        self.assertAlmostEqual(a.number, sma.number, places=self.places)
+        self.assertAlmostEqual(e, ecc, places=self.places)
+        self.assertAlmostEqual(i, inc, places=self.places)
+        self.assertAlmostEqual(w, argper, places=self.places)
+        self.assertAlmostEqual(W, long_ascnode, places=self.places)
+        self.assertAlmostEqual(f, true_anom, places=self.places)
+
+    def test_inclined_3(self):
+        new_binary = new_binary_from_orbital_elements
+
+        m = 1|units.MSun
+        sma = 1|units.AU
+        ecc = 0.5
+        true_anom = 23
+        inc = 18
+        long_ascnode = 56
+        argper = 12
+        G = constants.G
+        
+        binary = new_binary(m, m, sma,
+                            eccentricity=ecc,
+                            true_anomaly=true_anom,
+                            inclination=inc,
+                            longitude_of_the_ascending_node=long_ascnode,
+                            argument_of_periapsis=argper,
+                            G=G)
+
+        a, e, i, w, W, f = orbital_elements(binary)
+
+        self.assertAlmostEqual(a.number, sma.number, places=self.places)
+        self.assertAlmostEqual(e, ecc, places=self.places)
+        self.assertAlmostEqual(i, inc, places=self.places)
+        self.assertAlmostEqual(w, argper, places=self.places)
+        self.assertAlmostEqual(W, long_ascnode, places=self.places)
+        self.assertAlmostEqual(f, true_anom, places=self.places)
+
+
+class test_orbital_elements_places4(test_orbital_elements):
+    def setUp(self):
+        self.places = 4
+
+class test_orbital_elements_places8(test_orbital_elements):
+    def setUp(self):
+        self.places = 8
+
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v','--verbosity', type=int,  default=2, metavar="default: 2")
@@ -806,9 +1027,14 @@ def get_arguments():
 if __name__ == "__main__":
     args = get_arguments()
 
-    test_cases = [test_HDF5Handler_ndarrays,
+    test_cases = [\
+                  test_orbital_elements,
+                  test_orbital_elements_places4,
+                  test_orbital_elements_places8,
+                  test_HDF5Handler_ndarrays,
+                  test_HDF5HandlerAmuseUnits,
                   test_HDF5HandlerAmuse,
-                  test_HDF5HandlerAmuseUnits]
+                 ]
 
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
