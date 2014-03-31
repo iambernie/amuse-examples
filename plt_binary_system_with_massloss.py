@@ -70,7 +70,7 @@ def plot_position(f):
 
             massratio = round(mass0/mass1, 1)
 
-            fig = plt.figure()
+            fig = plt.figure(figsize=(8,8))
             ax = fig.add_subplot(111)
             ax.scatter(position[:,0,0], position[:,0,1], color='g')
             ax.scatter(position[:,1,0], position[:,1,1], color='b')
@@ -81,13 +81,16 @@ def plot_position(f):
             ax.legend()
 
             name = str(s.name)+"_"+str(delta_t)
-            plt.savefig(fig, 'temp/'+name+".png")
+            plt.savefig('temp/'+name+".png")
+            fig.clf()
+            plt.close()
 
 
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f','--filename', metavar="HDF5 FILENAME")
+    parser.add_argument('-f','--filename', required=True,
+                        help="hdf5 file created by sim_binary_system_with_massloss.py")
     args = parser.parse_args()
     return args
 
