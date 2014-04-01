@@ -83,7 +83,7 @@ class HDF5Handler(object):
                 h.append(ndarray, '/grp1/velocity')
 
     """
-    def __init__(self, filename, mode='a'):
+    def __init__(self, filename, mode='a', prefix=None):
         """
         Parameters
         ----------
@@ -92,6 +92,7 @@ class HDF5Handler(object):
         """
         self.filename = filename
         self.mode = mode
+        self.prefix = prefix
         self.index = dict()
 
     def __enter__(self):
@@ -116,11 +117,17 @@ class HDF5Handler(object):
         else:
             raise TypeError("{} is not supported".format(type(array)))
 
-        if dset_path in self.index:
-            self.index[dset_path].append(ndarray)
+        if self.prefix is not None: 
+           fulldsetpath = self.prefix+dset_path 
         else:
-            self.create_dset(dset_path, array, **kwargs) 
-            self.index[dset_path].append(ndarray)
+           fulldsetpath = dset_path 
+              
+
+        if fulldsetpath in self.index:
+            self.index[fulldsetpath].append(ndarray)
+        else:
+            self.create_dset(fulldsetpath, array, **kwargs) 
+            self.index[fulldsetpath].append(ndarray)
 
     def create_dset(self, dset_path, array, chunksize=1000, blockfactor=100, dtype='float64'):
         """
@@ -171,27 +178,6 @@ class HDF5Handler(object):
 
 
 class HDF5HandlerAmuse(HDF5Handler):
-    def append(self, array, dset_path, **kwargs):
-        """ 
-        Parameters
-        ----------
-        array : ndarray or list or amuse quantity
-        dset_path  : unix-style path ( 'group/datasetname' )
-
-        """
-
-        if is_numeric(array):
-            ndarray = convert_to_ndarray(array)
-        else:
-            raise TypeError("{} is not supported".format(type(array)))
-
-
-        if dset_path in self.index:
-            self.index[dset_path].append(ndarray)
-        else:
-            self.create_dset(dset_path, array, **kwargs) 
-            self.index[dset_path].append(ndarray)
-
     def create_dset(self, dset_path, array, chunksize=1000, blockfactor=100, dtype='float64'):
         """
         Define h5py dataset parameters here. 
@@ -249,6 +235,7 @@ class HDF5HandlerAmuse(HDF5Handler):
             pass
 
         self.index.update({dset_path: Dataset(dset)})
+
 
 def convert_to_ndarray(array):
     #TODO: this is too similar too get_shape. Rethink implementation

@@ -265,6 +265,16 @@ class test_HDF5Handler_ndarrays(unittest.TestCase):
 
         f = h5py.File(self.filename)
         self.assertAlmostEqual(self.sumfloats, f['test'].value.sum(), places=1)
+
+    def test_prefix(self):
+        with self.Handler(self.filename) as h:
+            h.prefix = 'prefix/'
+            for row in self.ints:
+                h.append(row, 'test') 
+
+        f = h5py.File(self.filename)
+        self.assertEqual(self.sumints, f['prefix/test'].value.sum())
+
         
     def tearDown(self):
         try:
