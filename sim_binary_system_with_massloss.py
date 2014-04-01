@@ -64,6 +64,7 @@ def main():
             for seqcount, time in enumerate(masslosstimes):
                 seq_str = "sequence_"+str(seqcount).zfill(2)
                 h5path = "/"+sys_str+"/"+seq_str+"/"
+                datahandler.prefix = h5path
 
                 mass_seq, time_seq = massloss_evolution(time, bodies[0].mass, 
                                                         step=step)
@@ -72,7 +73,7 @@ def main():
                       "totalsteps {}".format(len(mass_seq)))
 
                 evolve_system_with_massloss(bodies, mass_seq, time_seq, 
-                                            datahandler, h5path)
+                                            datahandler)
 
                 datahandler.file.flush()
 
@@ -98,7 +99,7 @@ def massloss_evolution(endtime, initmass, mf=0.5, step=2.0|u.day):
 
 
 def evolve_system_with_massloss(particles, mass_sequence, time_sequence, 
-                                datahandler, h5path):
+                                datahandler):
     """
 
     Parameters
@@ -107,7 +108,6 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence,
     mass_sequence: sequence of masses
     time_sequence: sequence of times
     datahandler: HDF5HandlerAmuse context manager
-    h5path: unix-style path for this simulation's dataset
 
     """
     h = datahandler
@@ -115,7 +115,7 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence,
     intr = Hermite(nbody_to_si(particles.total_mass(), 1 | u.AU))
     intr.particles.add_particles(particles)
 
-    h.append(particles[0].period0, h5path+"period0")
+    h.append(particles[0].period0, "period0")
 
     for mass, time in zip(mass_sequence, time_sequence):
 
@@ -123,17 +123,17 @@ def evolve_system_with_massloss(particles, mass_sequence, time_sequence,
         intr.evolve_model(time)
         intr.particles[0].mass = mass 
 
-        h.append(intr.particles.center_of_mass(), h5path+"CM_position")
-        h.append(intr.particles.center_of_mass_velocity(), h5path+"CM_velocity")
-        h.append(intr.particles.position, h5path+"position")
-        h.append(intr.particles.velocity, h5path+"velocity")
-        h.append(intr.particles.mass, h5path+"mass")
-        h.append(intr.particles.kinetic_energy(), h5path+"kinetic_energy")
-        h.append(intr.particles.potential_energy(), h5path+"potential_energy")
-        h.append(intr.get_total_energy(), h5path+"total_energy")
-        h.append(time, h5path+"time")
-        h.append(semimajoraxis_from_binary(intr.particles), h5path+"sma")
-        h.append(eccentricity_from_binary(intr.particles), h5path+"eccentricity")
+        h.append(intr.particles.center_of_mass(), "CM_position")
+        h.append(intr.particles.center_of_mass_velocity(), "CM_velocity")
+        h.append(intr.particles.position, "position")
+        h.append(intr.particles.velocity, "velocity")
+        h.append(intr.particles.mass, "mass")
+        h.append(intr.particles.kinetic_energy(), "kinetic_energy")
+        h.append(intr.particles.potential_energy(), "potential_energy")
+        h.append(intr.get_total_energy(), "total_energy")
+        h.append(time, "time")
+        h.append(semimajoraxis_from_binary(intr.particles), "sma")
+        h.append(eccentricity_from_binary(intr.particles), "eccentricity")
      
     intr.stop()
 
