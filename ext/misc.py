@@ -5,6 +5,7 @@ import h5py
 import numpy
 
 from amuse.units import constants, core
+from amuse.datamodel.particles import Particles
 
 def semimajoraxis_from_binary(binary, G=constants.G):
     """ Calculates the semimajoraxis of a binary system. """
@@ -157,6 +158,78 @@ def orbital_elements(binary, G=constants.G, reference_direction=None,
                numpy.degrees(f)
     elif angle == 'radians':
         return a, e, i, w, W, f
+
+
+
+def new_binary_from_elements(
+        mass1,
+        mass2,
+        semimajor_axis,
+        eccentricity = 0,
+        true_anomaly = 0,
+        inclination = 0,
+        longitude_of_the_ascending_node = 0,
+        argument_of_periapsis = 0,
+        G=constants.G
+    ):
+    """ 
+
+    Function that returns two-particle Particle set, with the second 
+    particle position and velocities computed from the input orbital 
+    elements. angles in degrees, inclination between 0 and 180
+
+    Copied from ext.orbital_elements.new_binary_from_elements, but doesn't
+    move_to_center.
+
+    """
+
+    inclination = numpy.radians(inclination)
+    argument_of_periapsis = numpy.radians(argument_of_periapsis)
+    longitude_of_the_ascending_node = numpy.radians(longitude_of_the_ascending_node)
+    true_anomaly = numpy.radians(true_anomaly)
+
+    cos_true_anomaly = numpy.cos(true_anomaly)
+    sin_true_anomaly = numpy.sin(true_anomaly)
+
+    cos_inclination = numpy.cos(inclination)
+    sin_inclination = numpy.sin(inclination)
+
+    cos_arg_per = numpy.cos(argument_of_periapsis)
+    sin_arg_per = numpy.sin(argument_of_periapsis)
+
+    cos_long_asc_nodes = numpy.cos(longitude_of_the_ascending_node)
+    sin_long_asc_nodes = numpy.sin(longitude_of_the_ascending_node)
+
+    ### alpha is a unit vector directed along the line of node ###
+    alphax = cos_long_asc_nodes*cos_arg_per - sin_long_asc_nodes*sin_arg_per*cos_inclination
+    alphay = sin_long_asc_nodes*cos_arg_per + cos_long_asc_nodes*sin_arg_per*cos_inclination
+    alphaz = sin_arg_per*sin_inclination
+    alpha = [alphax,alphay,alphaz]
+
+    ### beta is a unit vector perpendicular to alpha and the orbital angular momentum vector ###
+    betax = -cos_long_asc_nodes*sin_arg_per - sin_long_asc_nodes*cos_arg_per*cos_inclination
+    betay = -sin_long_asc_nodes*sin_arg_per + cos_long_asc_nodes*cos_arg_per*cos_inclination
+    betaz = cos_arg_per*sin_inclination
+    beta = [betax,betay,betaz]
+
+#    print 'alpha',alphax**2+alphay**2+alphaz**2 # For debugging; should be 1
+#    print 'beta',betax**2+betay**2+betaz**2 # For debugging; should be 1
+
+    ### Relative position and velocity ###
+    separation = semimajor_axis*(1.0 - eccentricity**2)/(1.0 + eccentricity*cos_true_anomaly) # Compute the relative separation
+    position_vector = separation*cos_true_anomaly*alpha + separation*sin_true_anomaly*beta
+    velocity_tilde = (G*(mass1 + mass2)/(semimajor_axis*(1.0 - eccentricity**2))).sqrt() # Common factor
+    velocity_vector = -1.0*velocity_tilde*sin_true_anomaly*alpha + velocity_tilde*(eccentricity + cos_true_anomaly)*beta
+
+    result = Particles(2)
+    result[0].mass = mass1
+    result[1].mass = mass2
+
+    result[1].position = position_vector
+    result[1].velocity = velocity_vector
+
+    return result
+
 
 
 def quantify_dset(dset):
