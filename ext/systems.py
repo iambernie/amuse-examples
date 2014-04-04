@@ -4,6 +4,9 @@ from amuse.units import constants
 from amuse.units import units
 from amuse.datamodel.particles import Particles
 
+#TODO: absolute path
+from misc import new_binary_from_elements
+
 def sun_and_earth():
     """
     Sets up a two-body system representing the sun and earth.
@@ -28,7 +31,6 @@ def sun_and_earth():
     earth.radius = 6371.0 | units.km
 
     return bodies
-
 
 def twobodies_circular(mass1, mass2, sma):
     """
@@ -69,8 +71,25 @@ def twobodies_circular(mass1, mass2, sma):
 
     return bodies
 
-def twobodies(mass1, mass2):
-    #TODO: generalize twobodies_circular for eccentric orbits
-    pass
+def veras_multiplanet():
+    """
+    Initial conditions for multi-planet system as described in:
+    Veras D, MNRAS 431, 1686-1708 (2013), paragraph 2.2
+    """
+    endtime = 5e5 |units.yr
+    mdot = 1.244e-5 |(units.MSun/units.yr)
+    mass1 = 7.659 |units.MSun
+    mass2 = 0.001 |units.MSun
+
+    assert mdot * endtime < mass1
+
+    threebody = Particles()
+    twobody1 = new_binary_from_elements(mass1, mass2, 10|units.AU)
+    twobody2 = new_binary_from_elements(mass1, mass2, 30|units.AU, eccentricity=0.5)
+    threebody.add_particles(twobody1)
+    threebody.add_particle(twobody2[1])
+
+    return threebody
+
 
 
