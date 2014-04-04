@@ -75,12 +75,13 @@ def simulations(datahandler):
     """
     Set up the simulations here.
     """
+
     datahandler.file.attrs['info'] = "some meta data about simulations in this hdf5file."
 
     threebody = veras_multiplanet()
 
-    mdot = 1.244e-5 | (units.MSun/units.yr)
-    endtime = 5e5 |units.yr
+    mdot = args.mdot | (units.MSun/units.yr)
+    endtime = args.endtime |units.yr
     timesteps = args.timesteps |units.yr
     storestep = args.storestep
 
@@ -175,13 +176,13 @@ def get_arguments():
     parser.add_argument('-f','--filename', required=True, 
                         help="Filepath for hdf5 file.")
 
-    parser.add_argument('--mdot', type=float, default=1e-5,
+    parser.add_argument('--mdot', type=float, default=1.244e-5,
                         help="Masslossrate in MSun/Yr")
 
-    parser.add_argument('--orbitmass', type=float, default=0.01,
+    parser.add_argument('--orbitmass', type=float, default=0.001,
                         help="Mass of the orbiting body in MSun")
 
-    parser.add_argument('--endtime', type=float,  default=1000,
+    parser.add_argument('--endtime', type=float,  default=5e5,
                         help="Endtime in yr")
 
     parser.add_argument('--storestep', type=int,  default=1000,
