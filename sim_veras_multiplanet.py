@@ -3,6 +3,7 @@
 
 import argparse
 import numpy
+import time as Time
 
 from amuse.units import constants 
 from amuse.units import units 
@@ -39,41 +40,80 @@ class MassState(object):
      -------------------> -------------------> ------------------->
 
     """
-    def __init__(self, timestep, endtime, startmass, mdot, storestep=1000, dt_param=None):
-        self.time = 0 |units.yr
-        self.endtime = endtime
-        self.dt_internal = dt_param
-        self.dt_external = timestep 
-        self.mass = startmass
-        self.mdot = mdot  
-        self.stop = False
-        self.counter = 0
-        self.storestep = storestep
+    def __init__(self, timestep, endtime, startmass, mdot, datapoints=200, 
+                 dt_param=None):
 
         if mdot*endtime > startmass:
             raise Exception("mdot*endtime = negative endmass.")
 
-    def advance(self):
-        self.counter += 1
-        self.time += self.dt_external
-        self.mass -= self.mdot * self.dt_external #assume mdot > 0
+        self.starttime = 0 |units.yr
+        self.mdot = mdot  
+       
+        self.timestep = timestep
+        self.endtime = endtime
+        self.startmass = startmass
+        
+        self.time_and_mass = self.update()
+        self.savepoint = self.savepoints(datapoints)
 
-        if self.time > self.endtime:
-            self.stop = True
+        self.stopmass_evo = False
+        self.stopsave = False
+        
+
+    def update(self, verbose=True):
+        mass = self.startmass
+        mdot = self.mdot
+        time = self.starttime 
+        timestep = self.timestep
+        endtime = self.endtime
+        
+        while time != endtime:
+            if time + timestep >= endtime:
+                mass -= self.mdot *(endtime - time)
+                time = endtime
+                self.stopmass_evo = True
+                yield time, mass
+
+            else:
+                time += timestep
+                mass -= self.mdot * timestep
+                yield time, mass
+
+            if verbose is True:
+                time_in_yr = round(time.value_in(units.yr), 2)
+                print("Advancing to time: {} yr ".format(time_in_yr))
+             
+
+    def savepoints(self, datapoints):
+        """ 
+        Generator to yield the points in time at which data needs to be saved.
+
+        """
+        unit = units.yr
+         
+        start, stop = self.starttime.value_in(unit), self.endtime.value_in(unit)
+        checkpoints = numpy.linspace(start, stop, datapoints)|unit
+        for cp in checkpoints:
+            yield cp
+        self.stopsave = True
 
     @property
-    def store(self):
-        if self.counter % self.storestep == 0:
+    def stop(self):
+        if self.stopmass_evo is True and self.stopsave is True:
             return True
         else:
             return False
-
-        
-
+          
 
 def simulations(datahandler):
     """
     Set up the simulations here.
+
+    Essentially:
+        - decide on a name to use as prefix for each simulation
+        - create a MassState() instance. (i.e. define a massloss prescription)
+        - call evolve_system()
+
     """
 
     datahandler.file.attrs['info'] = "some meta data about simulations in this hdf5file."
@@ -83,7 +123,7 @@ def simulations(datahandler):
     mdot = args.mdot | (units.MSun/units.yr)
     endtime = args.endtime |units.yr
     timesteps = args.timesteps |units.yr
-    storestep = args.storestep
+    datapoints = args.datapoints
 
     for i, timestep in enumerate(timesteps):
         datahandler.prefix = "sim_"+str(i).zfill(2)+"/"
@@ -94,7 +134,7 @@ def simulations(datahandler):
         # the simulation.
         datahandler.append(timestep, "timestep")
 
-        state = MassState(timestep, endtime, threebody[0].mass, mdot, storestep=storestep)
+        state = MassState(timestep, endtime, threebody[0].mass, mdot, datapoints=datapoints)
 
         evolve_system(threebody, state, datahandler)
 
@@ -103,6 +143,9 @@ def simulations(datahandler):
 
 def evolve_system(particles, state, datahandler):
     """
+    Iteratively calls integrator.evolve_model().
+
+
     Parameters
     ----------
     particles: a two-body system 
@@ -113,24 +156,48 @@ def evolve_system(particles, state, datahandler):
     intr = Hermite(nbody_to_si(particles.total_mass(), 1 |units.AU))
     intr.particles.add_particles(particles)
 
-    if state.time is None:
-        state.time = intr.get_time()
+    time, mass = next(state.time_and_mass)
+    savepoint = next(state.savepoint)
 
     while state.stop is False:
+        #Race Condition
+        if savepoint < time:
+            intr.evolve_model(savepoint)
+            store_data(intr, state, datahandler)
 
-        intr.evolve_model(state.time)
-        intr.particles[0].mass = state.mass
+            try:
+                savepoint = next(state.savepoint)
+            except StopIteration:
+                pass
 
-        if state.store is True: 
-            storedata(intr, state, datahandler)
-            print(state.time)
+        elif time < savepoint:
+            intr.evolve_model(time)
+            intr.particles[0].mass = mass
 
-        state.advance()
+            try:
+                time, mass = next(state.time_and_mass)
+            except StopIteration:
+                pass
+
+        elif time == savepoint:
+            intr.evolve_model(time)
+            intr.particles[0].mass = mass
+            store_data(intr, state, datahandler)
+
+            try:
+                time, mass = next(state.time_and_mass)
+            except StopIteration:
+                pass
+
+            try:
+                savepoint = next(state.savepoint)
+            except StopIteration:
+                pass
 
     intr.stop()
 
 
-def storedata(intr, state, datahandler):
+def store_data(intr, state, datahandler):
     """
     Set up which parameters to store in the hdf5 file here.
     """
@@ -138,6 +205,7 @@ def storedata(intr, state, datahandler):
     p = intr.particles
 
     h.append(intr.get_time().in_(units.yr), "time")
+    h.append(Time.time(), "walltime")
     h.append(p.center_of_mass(), "CM_position")
     h.append(p.center_of_mass_velocity(), "CM_velocity")
     h.append(p.position, "position")
@@ -185,8 +253,8 @@ def get_arguments():
     parser.add_argument('--endtime', type=float,  default=5e5,
                         help="Endtime in yr")
 
-    parser.add_argument('--storestep', type=int,  default=1000,
-                        help="Store data at every 'storestep'.")
+    parser.add_argument('--datapoints', type=int,  default=200,
+                        help="Number of datapoints.")
 
     parser.add_argument('--dtparams', type=float, default=[0.1, 0.2, 0.3], nargs='+',  
                         help="Use like this: --dtparam 0.1 0.2 ")
