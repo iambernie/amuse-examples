@@ -240,11 +240,10 @@ class HDF5HandlerAmuse(HDF5Handler):
 def convert_to_ndarray(array):
     #TODO: this is too similar too get_shape. Rethink implementation
     if is_scalar(array):
-        scalar = array
-        if isinstance(scalar, ScalarQuantity):
-            ndarray = numpy.array([scalar.number])
+        if isinstance(array, ScalarQuantity):
+            return array.number
         else:
-            ndarray = numpy.array([scalar])
+            return array
 
     else: #convert tuple/list/ndarray/vectorquantity
         if isinstance(array, VectorQuantity):
@@ -255,15 +254,14 @@ def convert_to_ndarray(array):
             ndarray = numpy.array(array)
         else:
             raise TypeError
-
-    return ndarray
+        return ndarray
 
 def get_shape(array):
     """
-    returns shape of array or return (1,) if it is a scalar.
+    returns shape of array or return () if it is a scalar.
     """
     if is_scalar(array):
-        arr_shape = (1,)
+        arr_shape = ()
     else: 
         if isinstance(array, VectorQuantity):
             arr_shape = array.shape 

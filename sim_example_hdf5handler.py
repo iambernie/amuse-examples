@@ -1,5 +1,6 @@
 import os
 import numpy
+import h5py
 
 from amuse.units import units
 
@@ -21,7 +22,10 @@ def append_scalars():
         for row in ones:
             h.append(row, 'ones' )
 
+    f = h5py.File(filename)
+    print(f['ones'])
     os.remove(filename)
+
 
 def append_ndarrays():
     filename = 'test.hdf5'
@@ -32,6 +36,8 @@ def append_ndarrays():
         for row in ones:
             h.append(row, 'ones')
 
+    f = h5py.File(filename)
+    print(f['ones'])
     os.remove(filename)
 
 def append_scalarquantities():
@@ -43,6 +49,8 @@ def append_scalarquantities():
         for sq in ones:
             h.append(sq, 'ones')
 
+    f = h5py.File(filename)
+    print(f['ones'], f['ones'].attrs['unit'])
     os.remove(filename)
 
 def append_vectorquantities():
@@ -54,6 +62,8 @@ def append_vectorquantities():
         for vq in ones:
             h.append(vq, 'ones')
 
+    f = h5py.File(filename)
+    print(f['ones'], f['ones'].attrs['unit'])
     os.remove(filename)
 
 if __name__ == "__main__":
