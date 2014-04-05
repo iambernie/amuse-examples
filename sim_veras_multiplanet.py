@@ -60,7 +60,7 @@ class MassState(object):
         self.stopsave = False
         
 
-    def update(self, verbose=True):
+    def update(self):
         mass = self.startmass
         mdot = self.mdot
         time = self.starttime 
@@ -79,12 +79,8 @@ class MassState(object):
                 mass -= self.mdot * timestep
                 yield time, mass
 
-            if verbose is True:
-                time_in_yr = round(time.value_in(units.yr), 2)
-                print("Advancing to time: {} yr ".format(time_in_yr))
              
-
-    def savepoints(self, datapoints):
+    def savepoints(self, datapoints, verbose=True):
         """ 
         Generator to yield the points in time at which data needs to be saved.
 
@@ -94,6 +90,11 @@ class MassState(object):
         start, stop = self.starttime.value_in(unit), self.endtime.value_in(unit)
         checkpoints = numpy.linspace(start, stop, datapoints)|unit
         for cp in checkpoints:
+
+            if verbose is True:
+                time_in_yr = round(cp.value_in(units.yr), 2)
+                print("Savepoint: {} yr ".format(time_in_yr))
+
             yield cp
         self.stopsave = True
 
