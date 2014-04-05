@@ -230,8 +230,6 @@ def new_binary_from_elements(
 
     return result
 
-
-
 def quantify_dset(dset):
     if 'unit' in dset.attrs:
         unit = retrieve_unit(dset.attrs['unit'])
@@ -248,5 +246,13 @@ def printunit(name, obj):
     if isinstance(obj, h5py.Dataset):
         if 'unit' in obj.attrs:
             print(name, obj.attrs['unit'])
+
+def printdset(name, obj):
+    if isinstance(obj, h5py.Dataset):
+        if "unit" in obj.attrs:
+            unit = eval(obj.attrs['unit'], core.__dict__)
+            print(name, obj.shape, unit)
+        else:
+            print(name, obj.shape)
 
 
