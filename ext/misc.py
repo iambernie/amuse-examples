@@ -232,10 +232,17 @@ def new_binary_from_elements(
 
 def quantify_dset(dset):
     if 'unit' in dset.attrs:
-        unit = retrieve_unit(dset.attrs['unit'])
+        unit = evalrefstring(dset.attrs['unit'])
         return dset.value | unit
 
-def retrieve_unit(reference_string):
+def retrieve_unit(dset):
+    if "unit" in dset.attrs:
+        reference_string = dset.attrs['unit']
+        return eval(reference_string, core.__dict__)
+    else:
+        raise Exception("Dataset.attrs has no unit keyword")
+
+def evalrefstring(reference_string):
     return eval(reference_string, core.__dict__)
 
 def printshape(name, obj):

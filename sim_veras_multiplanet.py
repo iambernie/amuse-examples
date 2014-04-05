@@ -8,8 +8,12 @@ import time as Time
 from amuse.units import constants 
 from amuse.units import units 
 from amuse.units.nbody_system import nbody_to_si
-#from amuse.community.mercury.interface import Mercury
+
+from amuse.community.mercury.interface import Mercury
 from amuse.community.hermite0.interface import Hermite
+from amuse.community.ph4.interface import ph4
+from amuse.community.huayno.interface import Huayno
+from amuse.community.smalln.interface import SmallN
 
 from ext.hdf5utils import HDF5HandlerAmuse
 from ext.misc import orbital_elements
@@ -89,6 +93,9 @@ class MassState(object):
          
         start, stop = self.starttime.value_in(unit), self.endtime.value_in(unit)
         checkpoints = numpy.linspace(start, stop, datapoints)|unit
+
+        self.nr_checkpoints = len(checkpoints)
+
         for cp in checkpoints:
 
             if verbose is True:
@@ -126,23 +133,20 @@ def simulations(datahandler):
     timesteps = args.timesteps |units.yr
     datapoints = args.datapoints
 
-    for i, timestep in enumerate(timesteps):
-        datahandler.prefix = "sim_"+str(i).zfill(2)+"/"
-
-        # For now, store timestep in a h5py.Dataset f['prefix']['timestep'].
-        # But later, store it as metadata in f['prefix'].attrs['meta']
-        # Since this is a parameter that doesn't change during 
-        # the simulation.
-        datahandler.append(timestep, "timestep")
-
-        state = MassState(timestep, endtime, threebody[0].mass, mdot, datapoints=datapoints)
-
-        evolve_system(threebody, state, datahandler)
-
-        datahandler.file.flush()
+    for intr in [Hermite, Mercury, ph4, SmallN, Huayno]:
+        for i, timestep in enumerate(timesteps):
+            datahandler.prefix = intr.__name__+"/sim_"+str(i).zfill(2)+"/"
+            # For now, store timestep in a h5py.Dataset f['prefix']['timestep'].
+            # But later, store it as metadata in f['prefix'].attrs['meta']
+            # Since this is a parameter that doesn't change during 
+            # the simulation.
+            datahandler.append(timestep, "timestep")
+            state = MassState(timestep, endtime, threebody[0].mass, mdot, datapoints=datapoints)
+            evolve_system(intr, threebody, state, datahandler)
+            datahandler.file.flush()
 
 
-def evolve_system(particles, state, datahandler):
+def evolve_system(integrator, particles, state, datahandler):
     """
     Iteratively calls integrator.evolve_model().
 
@@ -154,7 +158,7 @@ def evolve_system(particles, state, datahandler):
     datahandler: HDF5HandlerAmuse context manager
 
     """
-    intr = Hermite(nbody_to_si(particles.total_mass(), 1 |units.AU))
+    intr = integrator(nbody_to_si(particles.total_mass(), 1 |units.AU))
     intr.particles.add_particles(particles)
 
     time, mass = next(state.time_and_mass)
@@ -259,6 +263,9 @@ def get_arguments():
 
     parser.add_argument('--dtparams', type=float, default=[0.1, 0.2, 0.3], nargs='+',  
                         help="Use like this: --dtparam 0.1 0.2 ")
+
+    parser.add_argument('--integrator', default='Hermite', choices=['Hermite','Mercury'],
+                        help="Evolve with this integrator.")#TODO: implement choice of integrator
 
     parser.add_argument('--timesteps', type=float, default=[0.5, 1, 2], nargs='+',  
                         help="Update mass every 'timestep', where timestep is in years.\

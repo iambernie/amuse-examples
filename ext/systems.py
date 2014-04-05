@@ -89,6 +89,10 @@ def veras_multiplanet():
     threebody.add_particles(twobody1)
     threebody.add_particle(twobody2[1])
 
+    threebody[0].radius = 363.777818568 |units.RSun 
+    threebody[1].radius = 6000 |units.km
+    threebody[2].radius = 6000 |units.km
+
     return threebody
 
 
