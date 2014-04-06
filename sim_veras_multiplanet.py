@@ -130,16 +130,12 @@ def simulations(datahandler):
 
     mdot = args.mdot | (units.MSun/units.yr)
     endtime = args.endtime |units.yr
-    timesteps = args.timesteps |units.yr
+    timesteps = numpy.arange(args.timesteps[0], args.timesteps[1], args.timesteps[2]) |units.yr
     datapoints = args.datapoints
 
-    for intr in [Hermite, Mercury, ph4, SmallN, Huayno]:
+    for intr in [Hermite, SmallN, Huayno]:
         for i, timestep in enumerate(timesteps):
             datahandler.prefix = intr.__name__+"/sim_"+str(i).zfill(2)+"/"
-            # For now, store timestep in a h5py.Dataset f['prefix']['timestep'].
-            # But later, store it as metadata in f['prefix'].attrs['meta']
-            # Since this is a parameter that doesn't change during 
-            # the simulation.
             datahandler.append(timestep, "timestep")
             state = MassState(timestep, endtime, threebody[0].mass, mdot, datapoints=datapoints)
             evolve_system(intr, threebody, state, datahandler)
@@ -160,6 +156,10 @@ def evolve_system(integrator, particles, state, datahandler):
     """
     intr = integrator(nbody_to_si(particles.total_mass(), 1 |units.AU))
     intr.particles.add_particles(particles)
+
+    if hasattr(intr, "set_dt_param") and args.dtparam is not None:
+        intr.set_dt_param(args.dtparam)
+        datahandler.append(args.dtparam, "dtparam")
 
     time, mass = next(state.time_and_mass)
     savepoint = next(state.savepoint)
@@ -261,15 +261,15 @@ def get_arguments():
     parser.add_argument('--datapoints', type=int,  default=200,
                         help="Number of datapoints.")
 
-    parser.add_argument('--dtparams', type=float, default=[0.1, 0.2, 0.3], nargs='+',  
-                        help="Use like this: --dtparam 0.1 0.2 ")
+    parser.add_argument('--dtparam', type=float, default=None,  
+                        help="set_dt_param")
 
     parser.add_argument('--integrator', default='Hermite', choices=['Hermite','Mercury'],
                         help="Evolve with this integrator.")#TODO: implement choice of integrator
 
-    parser.add_argument('--timesteps', type=float, default=[0.5, 1, 2], nargs='+',  
-                        help="Update mass every 'timestep', where timestep is in years.\
-                        Use like this: --timesteps 0.5 1.0 2.0 ")
+    parser.add_argument('--timesteps', type=float, default=[50, 100, 10], nargs=3,  
+                        help="Supply numpy.arange(START, STOP, STEP) arguments to \
+                        create an ndarray of timesteps. ")
 
     args = parser.parse_args()
     return args
