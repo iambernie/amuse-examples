@@ -231,7 +231,7 @@ def store_data(intr, state, datahandler):
 
         a, e, i, w, W, f = orbital_elements(pset)
         mu = constants.G*pset.mass.sum() #standard grav. param.
-        period = (2*numpy.pi)**2*a**3/mu
+        period = ((2*numpy.pi)**2*a**3/mu).sqrt()
         mean_motion = 2*numpy.pi / period
         massloss_index = state.mdot / (mean_motion*mu)
         h.append(a, "sma")
