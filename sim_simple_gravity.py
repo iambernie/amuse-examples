@@ -29,15 +29,24 @@ def evolve_system(particles):
     """
     times = numpy.linspace(0.0001, args.time, args.steps) |u.yr
 
-    integrator = Hermite(nbody_to_si(particles.total_mass(), 1 | u.AU))
-    integrator.particles.add_particles(particles)
+    intr = Hermite(nbody_to_si(particles.total_mass(), 1 | u.AU))
+    intr.particles.add_particles(particles)
+
+    energy_begin = intr.get_total_energy()
+
+    if args.dt is not None:
+        intr.set_dt_param(args.dt)
 
     for t in times:
-        integrator.evolve_model(t)
-        seperation = (integrator.particles[0].position - integrator.particles[1].position).length()
-        print(integrator.get_time_step().in_(u.day), integrator.get_time().in_(u.yr), t.in_(u.yr), seperation.in_(u.AU) )
+        intr.evolve_model(t)
+        energy_error = (intr.get_total_energy() - energy_begin)/energy_begin
+        print(intr.get_time_step().in_(u.day), intr.get_time().in_(u.yr))
+        print(energy_error)
+      
 
-    integrator.stop()
+    print("energy error:{}".format(energy_error))
+
+    intr.stop()
 
 
 def get_arguments():
@@ -47,6 +56,8 @@ def get_arguments():
                         default=50)
     parser.add_argument('-t','--time', metavar="END_TIME", type=float,
                         default=50, help="in years")
+    parser.add_argument('--dt',  type=float,
+                        default=None, help="set dt param")
 
     args = parser.parse_args()
     return args
@@ -54,5 +65,6 @@ def get_arguments():
 
 if __name__ == "__main__":
     args = get_arguments()
+    print(args)
     main()
 
