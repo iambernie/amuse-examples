@@ -18,11 +18,13 @@ from amuse.community.smalln.interface import SmallN
 from ext.hdf5utils import HDF5HandlerAmuse
 from ext.misc import orbital_elements
 from ext.systems import veras_multiplanet
+from ext import progressbar as pb
 
 class MassState(object):
     """
  
-    Mass is updated at every dt_external regardless of the internal timestep.
+    Mass is updated at every dt_external (i.e. self.timestep) regardless of the 
+    internal timestep of the integrator.
 
     starttime                                                             endtime
     ==============================================================================
@@ -45,10 +47,12 @@ class MassState(object):
 
     """
     def __init__(self, timestep, endtime, startmass, mdot, datapoints=200, 
-                 dt_param=None):
+                 dt_param=None, name="None"):
 
         if mdot*endtime > startmass:
             raise Exception("mdot*endtime = negative endmass.")
+
+        self.name = name
 
         self.starttime = 0 |units.yr
         self.mdot = mdot  
@@ -62,7 +66,6 @@ class MassState(object):
 
         self.stopmass_evo = False
         self.stopsave = False
-        
 
     def update(self):
         mass = self.startmass
@@ -94,16 +97,23 @@ class MassState(object):
         start, stop = self.starttime.value_in(unit), self.endtime.value_in(unit)
         checkpoints = numpy.linspace(start, stop, datapoints)|unit
 
-        self.nr_checkpoints = len(checkpoints)
+        pbar = pb.ProgressBar(widgets=self.drawwidget(self.name), 
+                              maxval=len(checkpoints)).start()
 
-        for cp in checkpoints:
-
-            if verbose is True:
-                time_in_yr = round(cp.value_in(units.yr), 2)
-                print("Savepoint: {} yr ".format(time_in_yr))
-
+        for i, cp in enumerate(checkpoints):
+            pbar.update(i)
             yield cp
+
+        pbar.finish()
         self.stopsave = True
+
+    def drawwidget(self, proces_discription):
+        """ Formats the progressbar. """
+        widgets = [proces_discription.ljust(20), pb.Percentage(), ' ',
+                   pb.Bar(marker='#',left='[',right=']'),
+                   ' ', pb.ETA()]
+        return widgets
+
 
     @property
     def stop(self):
@@ -111,7 +121,7 @@ class MassState(object):
             return True
         else:
             return False
-          
+
 
 def simulations(datahandler):
     """
@@ -137,7 +147,8 @@ def simulations(datahandler):
         for i, timestep in enumerate(timesteps):
             datahandler.prefix = intr.__name__+"/sim_"+str(i).zfill(2)+"/"
             datahandler.append(timestep, "timestep")
-            state = MassState(timestep, endtime, threebody[0].mass, mdot, datapoints=datapoints)
+            state = MassState(timestep, endtime, threebody[0].mass, mdot, 
+                              datapoints=datapoints, name=datahandler.prefix)
             evolve_system(intr, threebody, state, datahandler)
             datahandler.file.flush()
 
@@ -243,6 +254,8 @@ def store_data(intr, state, datahandler):
         datahandler.prefix = currentprefix
 
 
+
+
 def get_arguments():
     parser = argparse.ArgumentParser()
 
@@ -269,7 +282,7 @@ def get_arguments():
 
     parser.add_argument('--timesteps', type=float, default=[50, 100, 10], nargs=3,  
                         help="Supply numpy.arange(START, STOP, STEP) arguments to \
-                        create an ndarray of timesteps. ")
+                        create an ndarray of timesteps. e.g.: --timesteps 10 100 10")
 
     args = parser.parse_args()
     return args
