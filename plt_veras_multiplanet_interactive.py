@@ -2,6 +2,7 @@
 
 import argparse
 import h5py
+import numpy
 
 import matplotlib.pyplot as plt
 
@@ -91,6 +92,13 @@ def main():
     def sma_analytical(a0, mdot, t, mu0):
         return a0*(1 - mdot*t/mu0)**(-1)
 
+    def eccentricity_analytical(e0, phi0, f_in_deg):
+        f_in_rad = numpy.radians(f_in_deg)
+        return e0 + phi0*(1-e0**2)**(3.0/2)*numpy.sin(f_in_rad)/(1-e0*numpy.cos(f_in_rad))
+   
+    def get_massloss_index(mdot, mu, sma):
+        return mdot/(2*numpy.pi) * sma**(3.0/2) * mu**(-3.0/2)
+
     def onpick(event):
         print("artist:{} ind:{}".format(event.artist, event.ind))
         print("button: {}".format(event.mouseevent.button))
@@ -112,21 +120,28 @@ def main():
         inner_x, inner_y =  position[:, 1, x] - CM_position[:,x], position[:, 1, y] - CM_position[:,y]
         outer_x, outer_y =  position[:, 2, x] - CM_position[:,x], position[:, 2, y] - CM_position[:,y]
 
+        mass_vq = quantify_dset(sim['mass'])
+        mass = mass_vq[:,0].value_in(units.MSun)
+
         if event.mouseevent.button == 1:
 
-            sma_vq = quantify_dset(sim['p0/sma'])
-            sma = sma_vq.value_in(units.AU)
-
             mu0 = quantify_dset(sim['mass'])[0].sum()
-            sma_an_vq = sma_analytical(sma_vq[0], 1.244e-5|(units.MSun/units.yr), time_vq, mu0)
-            sma_an = sma_an_vq.value_in(units.AU)
 
             period_vq = quantify_dset(sim['p0/period'])
             period = period_vq.value_in(units.yr)
+            #massloss_index = sim['p0/massloss_index'].value
+
+            true_anomaly = sim['p0/true_anomaly'].value
+
+            sma_vq = quantify_dset(sim['p0/sma'])
+            sma = sma_vq.value_in(units.AU)
+            sma_an_vq = sma_analytical(sma_vq[0], 1.244e-5|(units.MSun/units.yr), time_vq, mu0)
+            sma_an = sma_an_vq.value_in(units.AU)
+
+            massloss_index = get_massloss_index(1.244e-5, mass, sma)
 
             eccentricity = sim['p0/eccentricity'].value
-            true_anomaly = sim['p0/true_anomaly'].value
-            massloss_index = sim['p0/massloss_index'].value
+            #eccentricity_an = eccentricity_analytical(eccentricity[0], massloss_index, true_anomaly)
 
             newfig = plt.figure()
             newax1 = newfig.add_subplot(511)
@@ -143,6 +158,7 @@ def main():
             newax1.legend(loc='best')
 
             newax2.plot(time, eccentricity)
+            newax2.plot(time, eccentricity_an)
             newax2.set_xlabel('time [yr]')
             newax2.set_ylabel('eccentricity ')
 
@@ -169,12 +185,10 @@ def main():
 
             mass_vq = quantify_dset(sim['mass'])
             mass = mass_vq.value_in(units.MSun)
-        
 
             kinetic_energy = sim['kinetic_energy'].value
             potential_energy = sim['potential_energy'].value
             total_energy = sim['total_energy'].value
-
 
             CM_velocity_vq = quantify_dset(sim['CM_velocity'])
             CM_velocity_mod = CM_velocity_vq.lengths().value_in(units.km/units.hour)
@@ -212,9 +226,6 @@ def main():
             newax6.set_ylabel('walltime [s]')
 
         newfig.show()
-
-
-
 
     fig.canvas.mpl_connect('pick_event', onpick) 
     #fig.canvas.mpl_connect('button_press_event', onclick) 
