@@ -254,8 +254,6 @@ def store_data(intr, state, datahandler):
         datahandler.prefix = currentprefix
 
 
-
-
 def get_arguments():
     parser = argparse.ArgumentParser()
 
