@@ -4,8 +4,112 @@
 import h5py
 import numpy
 
-from amuse.units import constants, core
+from amuse.units import units, constants, core
 from amuse.datamodel.particles import Particles
+import progressbar as pb
+
+
+
+class MassState(object):
+    """
+ 
+    Mass is updated at every dt_external regardless of the internal timestep.
+
+    starttime                                                             endtime
+    ==============================================================================
+    |      |      |      |      |      |      |      |      |      |      |      |
+    ==============================================================================
+
+      dt_i   dt_i   dt_i   dt_i   dt_i   dt_i   dt_i   dt_i   dt_i  
+     -----> -----> -----> -----> -----> -----> -----> -----> -----> 
+
+            dt_e                dt_e               dt_e            
+     -------------------> -------------------> ------------------->
+
+
+    starttime                                                             endtime
+    ==============================================================================
+    |           |        |      |   | | |     |        |          |              | 
+    ==============================================================================
+            dt_e                dt_e               dt_e            
+     -------------------> -------------------> ------------------->
+
+    """
+    def __init__(self, timestep, endtime, startmass, mdot, datapoints=200,
+                 dt_param=None, name="None"):
+
+        if mdot*endtime > startmass:
+            raise Exception("mdot*endtime = negative endmass.")
+
+        self.name = name
+
+        self.starttime = 0 |units.yr
+        self.mdot = mdot
+
+        self.timestep = timestep
+        self.endtime = endtime
+        self.startmass = startmass
+
+        self.time_and_mass = self.update()
+        self.savepoint = self.savepoints(datapoints)
+
+        self.stopmass_evo = False
+        self.stopsave = False
+
+
+    def update(self):
+        mass = self.startmass
+        mdot = self.mdot
+        time = self.starttime
+        timestep = self.timestep
+        endtime = self.endtime
+
+        while time != endtime:
+            if time + timestep >= endtime:
+                mass -= self.mdot *(endtime - time)
+                time = endtime
+                self.stopmass_evo = True
+                yield time, mass
+
+            else:
+                time += timestep
+                mass -= self.mdot * timestep
+                yield time, mass
+
+    def savepoints(self, datapoints, verbose=True):
+        """ 
+        Generator to yield the points in time at which data needs to be saved.
+
+        """
+        unit = units.yr
+
+        start, stop = self.starttime.value_in(unit), self.endtime.value_in(unit)
+        checkpoints = numpy.linspace(start, stop, datapoints)|unit
+
+        pbar = pb.ProgressBar(widgets=self.drawwidget(self.name),
+                              maxval=len(checkpoints)).start()
+
+        for i, cp in enumerate(checkpoints):
+            pbar.update(i)
+            yield cp
+
+        pbar.finish()
+        self.stopsave = True
+
+    def drawwidget(self, proces_discription):
+        """ Formats the progressbar. """
+        widgets = [proces_discription.ljust(20), pb.Percentage(), ' ',
+                   pb.Bar(marker='#',left='[',right=']'),
+                   ' ', pb.ETA()]
+        return widgets
+
+    @property
+    def stop(self):
+        if self.stopmass_evo is True and self.stopsave is True:
+            return True
+        else:
+            return False
+
 
 def semimajoraxis_from_binary(binary, G=constants.G):
     """ Calculates the semimajoraxis of a binary system. """
