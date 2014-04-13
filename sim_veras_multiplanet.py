@@ -133,6 +133,8 @@ def simulations(datahandler):
         - call evolve_system()
 
     """
+    integrators = dict(Mercury=Mercury, Hermite=Hermite, ph4=ph4, Huayno=Huayno,
+                       SmallN=SmallN)
 
     datahandler.file.attrs['info'] = "some meta data about simulations in this hdf5file."
 
@@ -143,7 +145,12 @@ def simulations(datahandler):
     timesteps = numpy.arange(args.timesteps[0], args.timesteps[1], args.timesteps[2]) |units.yr
     datapoints = args.datapoints
 
-    for intr in [Hermite, SmallN, Huayno]:
+    for name in args.integrators:
+        if name in integrators:
+            intr = integrators[name]
+        else:
+            continue
+
         for i, timestep in enumerate(timesteps):
             datahandler.prefix = intr.__name__+"/sim_"+str(i).zfill(2)+"/"
             datahandler.append(timestep, "timestep")
@@ -241,8 +248,8 @@ def store_data(intr, state, datahandler):
         datahandler.prefix = currentprefix+"p"+str(i)+"/"
 
         a, e, i, w, W, f = orbital_elements(pset)
-        mu = constants.G*pset.mass.sum() #standard grav. param.
-        period = ((2*numpy.pi)**2*a**3/mu).sqrt()
+        mu = pset.mass.sum() #NOT the stand. grav. parameter 
+        period = ((2*numpy.pi)**2*a**3/(constants.G*mu)).sqrt()
         mean_motion = 2*numpy.pi / period
         massloss_index = state.mdot / (mean_motion*mu)
         h.append(a, "sma")
@@ -275,8 +282,8 @@ def get_arguments():
     parser.add_argument('--dtparam', type=float, default=None,  
                         help="set_dt_param")
 
-    parser.add_argument('--integrator', default='Hermite', choices=['Hermite','Mercury'],
-                        help="Evolve with this integrator.")#TODO: implement choice of integrator
+    parser.add_argument('--integrators', default=['SmallN'], nargs='+',
+                        help="Integrators to use.")
 
     parser.add_argument('--timesteps', type=float, default=[50, 100, 10], nargs=3,  
                         help="Supply numpy.arange(START, STOP, STEP) arguments to \

@@ -158,7 +158,7 @@ def main():
             newax1.legend(loc='best')
 
             newax2.plot(time, eccentricity)
-            newax2.plot(time, eccentricity_an)
+            #newax2.plot(time, eccentricity_an)
             newax2.set_xlabel('time [yr]')
             newax2.set_ylabel('eccentricity ')
 

@@ -334,7 +334,7 @@ def new_binary_from_elements(
 
     return result
 
-def quantify_dset(dset):
+def quantify_dset(dset): #TODO: quantify dset in some given unit
     if 'unit' in dset.attrs:
         unit = evalrefstring(dset.attrs['unit'])
         return dset.value | unit
