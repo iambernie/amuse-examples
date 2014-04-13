@@ -130,8 +130,8 @@ def store_data(intr, state, datahandler):
     currentprefix = datahandler.prefix        
     datahandler.prefix = currentprefix+"p0"+"/"
     a, e, i, w, W, f = orbital_elements(p)
-    mu = constants.G*p.mass.sum() #standard grav. param.
-    period = ((2*numpy.pi)**2*a**3/mu).sqrt()
+    mu = p.mass.sum() 
+    period = ((2*numpy.pi)**2*a**3/(constants.G*mu)).sqrt()
     mean_motion = 2*numpy.pi / period
     massloss_index = state.mdot / (mean_motion*mu)
     h.append(a, "sma")
