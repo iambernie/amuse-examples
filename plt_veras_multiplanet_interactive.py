@@ -4,14 +4,9 @@ import argparse
 import h5py
 import numpy
 
-from pprint import pprint as pp
-
 import matplotlib.pyplot as plt
-from matplotlib import colors
-from matplotlib import cm
 
 from amuse.units import units
-from amuse.units import constants
 from amuse.units.quantities import AdaptingVectorQuantity
 
 from ext.misc import printdset
@@ -68,30 +63,41 @@ def main():
         #if intr.name in [ "/Mercury"] :
         #    continue
 
-        timesteps = AdaptingVectorQuantity()
-        final_smas_p0 = AdaptingVectorQuantity()
-        final_smas_p1 = AdaptingVectorQuantity()
+        timesteps_vq = AdaptingVectorQuantity()
+        final_smas_p0_vq = AdaptingVectorQuantity()
+        final_smas_p1_vq = AdaptingVectorQuantity()
 
         for sim in intr.values():
-            timesteps.append(sim['timestep'][0] | retrieve_unit(sim['timestep']))
-            final_smas_p0.append(sim['p0/sma'][-1]| retrieve_unit(sim['p0/sma']))
-            final_smas_p1.append(sim['p1/sma'][-1]| retrieve_unit(sim['p1/sma']))
+            timesteps_vq.append(sim['timestep'][0] | retrieve_unit(sim['timestep']))
+            final_smas_p0_vq.append(sim['p0/sma'][-1]| retrieve_unit(sim['p0/sma']))
+            final_smas_p1_vq.append(sim['p1/sma'][-1]| retrieve_unit(sim['p1/sma']))
 
-        ax1.plot(timesteps.value_in(units.yr), final_smas_p0.value_in(units.AU), marker='s', label=intr.name, picker=5)
-        ax2.plot(timesteps.value_in(units.yr), final_smas_p1.value_in(units.AU), marker='s', label=intr.name, picker=5 )
+        timesteps = timesteps_vq.value_in(units.yr)
+        final_smas_p0 = final_smas_p0_vq.value_in(units.AU)
+        final_smas_p1 = final_smas_p1_vq.value_in(units.AU)
+
+        ax1.plot(timesteps, final_smas_p0, marker='s', label=intr.name, picker=5)
+        ax2.plot(timesteps, final_smas_p1, marker='s', label=intr.name, picker=5)
+
+        ax1.set_xlabel('Mass update interval [yr]')
+        ax2.set_xlabel('Mass update interval [yr]')
+        ax1.set_ylabel('final sma inner [AU]')
+        ax2.set_ylabel('final sma outer [AU]')
         
     ax1.axhline(53.19, xmin=0, xmax=1, c='m', label='analytical')
     ax1.legend(loc='best')
     ax2.axhline(159.58, xmin=0, xmax=1, c='m', label='analytical')
     ax2.legend(loc='best')
 
-    #def onclick(event):
-    #    print(event.__class__)
-    #    print('{}  button={}  x={}  y={}, xdata={}, ydata={}'.format(
-    #          event.name, event.button, event.x, event.y, event.xdata, event.ydata))         
-
     def sma_analytical(a0, mdot, t, mu0):
         return a0*(1 - mdot*t/mu0)**(-1)
+
+    def eccentricity_analytical(e0, phi0, f_in_deg):
+        f_in_rad = numpy.radians(f_in_deg)
+        return e0 + phi0*(1-e0**2)**(3.0/2)*numpy.sin(f_in_rad)/(1-e0*numpy.cos(f_in_rad))
+   
+    def get_massloss_index(mdot, mu, sma):
+        return mdot/(2*numpy.pi) * sma**(3.0/2) * mu**(-3.0/2)
 
     def onpick(event):
         print("artist:{} ind:{}".format(event.artist, event.ind))
@@ -114,27 +120,35 @@ def main():
         inner_x, inner_y =  position[:, 1, x] - CM_position[:,x], position[:, 1, y] - CM_position[:,y]
         outer_x, outer_y =  position[:, 2, x] - CM_position[:,x], position[:, 2, y] - CM_position[:,y]
 
+        mass_vq = quantify_dset(sim['mass'])
+        mass = mass_vq[:,0].value_in(units.MSun)
+
         if event.mouseevent.button == 1:
+
+            mu0 = quantify_dset(sim['mass'])[0].sum()
+
+            period_vq = quantify_dset(sim['p0/period'])
+            period = period_vq.value_in(units.yr)
+            #massloss_index = sim['p0/massloss_index'].value
+
+            true_anomaly = sim['p0/true_anomaly'].value
 
             sma_vq = quantify_dset(sim['p0/sma'])
             sma = sma_vq.value_in(units.AU)
-
-            mu0 = quantify_dset(sim['mass'])[0].sum()
             sma_an_vq = sma_analytical(sma_vq[0], 1.244e-5|(units.MSun/units.yr), time_vq, mu0)
             sma_an = sma_an_vq.value_in(units.AU)
 
-            period_vq = quantify_dset(sim['p0/period'])
-            period = period_vq.number
+            massloss_index = get_massloss_index(1.244e-5, mass, sma)
 
             eccentricity = sim['p0/eccentricity'].value
-            true_anomaly = sim['p0/true_anomaly'].value
-            massloss_index = sim['p0/massloss_index'].value
+            #eccentricity_an = eccentricity_analytical(eccentricity[0], massloss_index, true_anomaly)
 
             newfig = plt.figure()
-            newax1 = newfig.add_subplot(411)
-            newax2 = newfig.add_subplot(412)
-            newax3 = newfig.add_subplot(413)
-            newax4 = newfig.add_subplot(414)
+            newax1 = newfig.add_subplot(511)
+            newax2 = newfig.add_subplot(512)
+            newax3 = newfig.add_subplot(513)
+            newax4 = newfig.add_subplot(514)
+            newax5 = newfig.add_subplot(515)
 
             newax1.plot(time, sma, label='numerical')
             newax1.plot(time, sma_an, label='analytical_adiabatic')
@@ -144,6 +158,7 @@ def main():
             newax1.legend(loc='best')
 
             newax2.plot(time, eccentricity)
+            newax2.plot(time, eccentricity_an)
             newax2.set_xlabel('time [yr]')
             newax2.set_ylabel('eccentricity ')
 
@@ -155,7 +170,9 @@ def main():
             newax4.set_xlabel('time [yr]')
             newax4.set_ylabel('massloss index')
 
-
+            newax5.plot(time, period)
+            newax5.set_xlabel('time [yr]')
+            newax5.set_ylabel('period')
 
         else:
             newfig = plt.figure()
@@ -168,15 +185,13 @@ def main():
 
             mass_vq = quantify_dset(sim['mass'])
             mass = mass_vq.value_in(units.MSun)
-        
 
             kinetic_energy = sim['kinetic_energy'].value
             potential_energy = sim['potential_energy'].value
             total_energy = sim['total_energy'].value
 
-
             CM_velocity_vq = quantify_dset(sim['CM_velocity'])
-            CM_velocity_mod = CM_velocity_vq.lengths().value_in(units.AU/units.yr)
+            CM_velocity_mod = CM_velocity_vq.lengths().value_in(units.km/units.hour)
 
             walltime = sim['walltime'].value - sim['walltime'][0]
 
@@ -193,17 +208,24 @@ def main():
             newax3.plot(central_x, central_y, **dots.white)
             newax3.plot(inner_x, inner_y, **dots.red)
             newax3.plot(outer_x, outer_y, **dots.yellow)
-            newax3.set_xlabel('x')
-            newax3.set_ylabel('y')
+            newax3.set_xlabel('x [AU]')
+            newax3.set_ylabel('y [AU]')
 
             newax4.plot(CM_position[:, x], CM_position[:, y] )
+            newax4.set_xlim(-5, 5)
+            newax4.set_xlabel('CM position x [AU]')
+            newax4.set_ylabel('CM position y [AU]')
+
             newax5.plot(time, CM_velocity_mod)
+            newax5.set_ylim(20, 30)
+            newax5.set_xlabel('time [yr]')
+            newax5.set_ylabel('CM velocity [km/hour]')
+
             newax6.plot(time, walltime)
+            newax6.set_xlabel('time [yr]')
+            newax6.set_ylabel('walltime [s]')
 
         newfig.show()
-
-
-
 
     fig.canvas.mpl_connect('pick_event', onpick) 
     #fig.canvas.mpl_connect('button_press_event', onclick) 
@@ -260,7 +282,7 @@ def get_arguments():
 if __name__ == "__main__":
     args = get_arguments()
     print(args)
-    runbright()
+    rundark()
     main()
 
  
