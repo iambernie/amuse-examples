@@ -76,14 +76,14 @@ class MassState(object):
         
         while time != endtime:
             if time + timestep >= endtime:
-                mass -= self.mdot *(endtime - time)
+                mass -= mdot *(endtime - time)
                 time = endtime
                 self.stopmass_evo = True
                 yield time, mass
 
             else:
                 time += timestep
-                mass -= self.mdot * timestep
+                mass -= mdot * timestep
                 yield time, mass
 
              

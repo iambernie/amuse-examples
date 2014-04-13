@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 
 def rundark():
     mpl.rc('lines', linewidth=1, color='w')

@@ -18,7 +18,6 @@ from ext.misc import MassState
 from ext.misc import new_binary_from_elements
 from ext.misc import orbital_elements
 from ext.hdf5utils import HDF5HandlerAmuse
-from ext import progressbar
 
 
 def simulations():
