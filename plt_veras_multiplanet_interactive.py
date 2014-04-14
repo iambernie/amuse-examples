@@ -27,8 +27,6 @@ def main():
     ax2 = fig.add_subplot(212)
 
     for intr in f.values():
-        #if intr.name in [ "/Mercury"] :
-        #    continue
 
         timesteps_vq = AdaptingVectorQuantity()
         final_smas_p0_vq = AdaptingVectorQuantity()
@@ -43,8 +41,8 @@ def main():
         final_smas_p0 = final_smas_p0_vq.value_in(units.AU)
         final_smas_p1 = final_smas_p1_vq.value_in(units.AU)
 
-        ax1.plot(timesteps, final_smas_p0, marker='s', label=intr.name, picker=5)
-        ax2.plot(timesteps, final_smas_p1, marker='s', label=intr.name, picker=5)
+        ax1.plot(timesteps, final_smas_p0, marker='o', label=intr.name, picker=5)
+        ax2.plot(timesteps, final_smas_p1, marker='o', label=intr.name, picker=5)
 
         ax1.set_xlabel('Mass update interval [yr]')
         ax2.set_xlabel('Mass update interval [yr]')
@@ -59,12 +57,6 @@ def main():
     def sma_analytical(a0, mdot, t, mu0):
         return a0*(1 - mdot*t/mu0)**(-1)
 
-    def eccentricity_analytical(e0, phi0, f_in_deg):
-        f_in_rad = numpy.radians(f_in_deg)
-        return e0 + phi0*(1-e0**2)**(3.0/2)*numpy.sin(f_in_rad)/(1-e0*numpy.cos(f_in_rad))
-   
-    def get_massloss_index(mdot, mu, sma):
-        return mdot/(2*numpy.pi) * sma**(3.0/2) * mu**(-3.0/2)
 
     def onpick(event):
         print("artist:{} ind:{}".format(event.artist, event.ind))
@@ -96,7 +88,6 @@ def main():
 
             period_vq = quantify_dset(sim['p0/period'])
             period = period_vq.value_in(units.yr)
-            #massloss_index = sim['p0/massloss_index'].value
 
             true_anomaly = sim['p0/true_anomaly'].value
 
@@ -105,10 +96,7 @@ def main():
             sma_an_vq = sma_analytical(sma_vq[0], 1.244e-5|(units.MSun/units.yr), time_vq, mu0)
             sma_an = sma_an_vq.value_in(units.AU)
 
-            massloss_index = get_massloss_index(1.244e-5, mass, sma)
-
             eccentricity = sim['p0/eccentricity'].value
-            #eccentricity_an = eccentricity_analytical(eccentricity[0], massloss_index, true_anomaly)
 
             newfig = plt.figure()
             newax1 = newfig.add_subplot(511)
@@ -125,17 +113,12 @@ def main():
             newax1.legend(loc='best')
 
             newax2.plot(time, eccentricity)
-            #newax2.plot(time, eccentricity_an)
             newax2.set_xlabel('time [yr]')
             newax2.set_ylabel('eccentricity ')
 
             newax3.plot(time, true_anomaly)
             newax3.set_xlabel('time [yr]')
             newax3.set_ylabel('true anomaly [degrees] ')
-
-            newax4.plot(time, massloss_index)
-            newax4.set_xlabel('time [yr]')
-            newax4.set_ylabel('massloss index')
 
             newax5.plot(time, period)
             newax5.set_xlabel('time [yr]')
@@ -242,7 +225,7 @@ class Dots(object):
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f','--filename', required=True,
-                        help="hdf5 file created by sim_binary_system_with_massloss.py")
+                        help="hdf5 file created by sim_veras_multiplanet.py")
     args = parser.parse_args()
     return args
 

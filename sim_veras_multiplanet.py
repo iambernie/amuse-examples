@@ -152,7 +152,7 @@ def simulations(datahandler):
             continue
 
         for i, timestep in enumerate(timesteps):
-            datahandler.prefix = intr.__name__+"/sim_"+str(i).zfill(2)+"/"
+            datahandler.prefix = intr.__name__+"/sim_"+str(i).zfill(4)+"/"
             datahandler.append(timestep, "timestep")
             state = MassState(timestep, endtime, threebody[0].mass, mdot, 
                               datapoints=datapoints, name=datahandler.prefix)
