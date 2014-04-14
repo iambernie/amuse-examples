@@ -38,7 +38,7 @@ def simulations():
     integrators = dict(Mercury=Mercury, Hermite=Hermite, ph4=ph4, Huayno=Huayno,
                        SmallN=SmallN)
 
-    eccentricities = numpy.arange(0.1, 1, 0.1)
+    eccentricities = numpy.arange(0, 1, 0.1)
     twobodies = [new_binary_from_elements(M, m, seperation, eccentricity=e)
                                           for e in eccentricities]
 
@@ -49,7 +49,7 @@ def simulations():
             continue
 
         for i, bodies in enumerate(twobodies):
-            datahandler.prefix = '/'+name+'/'+str(i).zfill(2)+'/'
+            datahandler.prefix = '/'+name+'/'+str(i).zfill(4)+'/'
             state = MassState(massupdateinterval, endtime, bodies[0].mass, 
                               mdot, datapoints, name=datahandler.prefix)
             evolve_system(intr, bodies, state, datahandler)
@@ -163,14 +163,15 @@ def get_arguments():
     parser.add_argument('-u', '--updateinterval', type=float, default=1,
                         help="Mass update interval in yearsr.")
 
-    parser.add_argument('--endtime', type=float, default=1e4,
+    parser.add_argument('--endtime', type=float, default=1.5e4,
                         help="endtime in years.")
 
     parser.add_argument('--datapoints', type=int,  default=1000,
                         help="Number of datapoints.")
 
     parser.add_argument('--integrators', default=['SmallN'], nargs='+',
-                        help="Integrators to use.")
+                        help="Integrators to use. Valid integrators:\
+                        Hermite, SmallN, ph4, Huayno")
 
     args = parser.parse_args()
     return args
