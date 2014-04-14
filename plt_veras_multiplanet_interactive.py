@@ -12,7 +12,6 @@ from amuse.units.quantities import AdaptingVectorQuantity
 from ext.misc import printdset
 from ext.misc import retrieve_unit
 from ext.misc import quantify_dset
-from ext.colors import rundark, runbright
 
 def main():
 
@@ -20,7 +19,6 @@ def main():
     line = Line()
 
     f = h5py.File(args.filename, 'r')
-    f.visititems(printdset)
     
     fig = plt.figure()
     ax1 = fig.add_subplot(211)
@@ -232,7 +230,6 @@ def get_arguments():
 if __name__ == "__main__":
     args = get_arguments()
     print(args)
-    rundark()
     main()
 
  
