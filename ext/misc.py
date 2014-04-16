@@ -8,8 +8,6 @@ from amuse.units import units, constants, core
 from amuse.datamodel.particles import Particles
 import progressbar as pb
 
-
-
 class MassState(object):
     """
  
@@ -236,10 +234,11 @@ def orbital_elements(binary, G=constants.G, reference_direction=None,
     ##############  argument of periapsis w  #############
     # Note that n_ is not unitless by definition
     if e > 0:
-        if i == 0:# => place w at ascending node n
-            w = 0
+        if i == 0:# equatorial orbit 
+            w = numpy.arctan2(e_[1], e_[0])
+            if (r_.cross(v_))[2].number < 0:
+                w = 2*numpy.pi - w
         else:
-            #FIXME: possible error here. Tests with inclined orbits are not passing
             w = numpy.arccos((n_.dot(e_)/(n*e)))
             if e_[2] < 0: 
                 w = 2*numpy.pi - w
@@ -248,21 +247,42 @@ def orbital_elements(binary, G=constants.G, reference_direction=None,
 
 
     ##################  true anomaly f  ###################
-    if e > 0:
-        f = numpy.arccos(r_.dot(e_)/(e*r))
+    if e != 0:
+        arccos_arg = r_.dot(e_)/(e*r)
+
+        #arccos(x) only defined for -1<x<1, but due to rounding
+        #errors this can be greater than 1 or less than -1.
+        if nearly_equal(1, arccos_arg):
+            arccos_arg = 1
+        elif nearly_equal(-1, arccos_arg):
+            arccos_arg = -1
+
+        f = numpy.arccos(arccos_arg)
+
         if r_.dot(v_).number < 0:
             f = 2*numpy.pi - f
-    elif e == 0:
-        f = 0
+    elif e == 0 and i != 0:
+        f = numpy.arccos(n_.dot(r_)/(n*r))
+        if (n_.dot(v_)).number > 0:
+            f = 2*numpy.pi - f
+    elif e == 0 and i == 0:
+        f = numpy.arccos(r_[0]/r)
+        if (v_[0]).number > 0:
+            f = 2*numpy.pi - f
+    else:
+        raise Exception('true anomaly could not be determined')
 
 
     if angle == 'degrees':
-        #print("e_:{}  n_:{}  h_:{} ".format(e_, n_, h_))
-        return a, e, numpy.degrees(i), numpy.degrees(w), numpy.degrees(W),\
-               numpy.degrees(f)
+        i_in_degrees = numpy.degrees(i) % 360.0
+        w_in_degrees = numpy.degrees(w) % 360.0
+        W_in_degrees = numpy.degrees(W) % 360.0
+        f_in_degrees = numpy.degrees(f) % 360.0
+
+        return a, e, i_in_degrees, w_in_degrees, W_in_degrees,\
+               f_in_degrees 
     elif angle == 'radians':
         return a, e, i, w, W, f
-
 
 
 def new_binary_from_elements(
@@ -333,6 +353,10 @@ def new_binary_from_elements(
     result[1].velocity = velocity_vector
 
     return result
+
+
+def nearly_equal(a,b,sig_fig=4):
+    return (a==b or int(a*10**sig_fig) == int(b*10**sig_fig))
 
 def quantify_dset(dset): #TODO: quantify dset in some given unit
     if 'unit' in dset.attrs:

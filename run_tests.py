@@ -923,6 +923,64 @@ class test_orbital_elements(unittest.TestCase):
         self.assertAlmostEqual(W, long_ascnode, places=self.places)
         self.assertAlmostEqual(f, true_anom, places=self.places)
 
+    def test_in_reference_plane_argument_of_periapsis_f0_i0_W0(self):
+        new_binary = new_binary_from_orbital_elements
+
+        m = 1|units.MSun
+        sma = 1|units.AU
+        ecc = 0.5
+        true_anom = 1
+        inc = 0
+        long_ascnode = 0
+        argper = numpy.linspace(0,359, 100) 
+        G = constants.G
+        
+        for w0 in argper:
+            binary = new_binary(m, m, sma,
+                                eccentricity=ecc,
+                                true_anomaly=true_anom,
+                                inclination=inc,
+                                longitude_of_the_ascending_node=long_ascnode,
+                                argument_of_periapsis=w0,
+                                G=G)
+
+            a, e, i, w, W, f = orbital_elements(binary)
+            self.assertAlmostEqual(a.number, sma.number, places=self.places)
+            self.assertAlmostEqual(e, ecc, places=self.places)
+            self.assertAlmostEqual(i, inc, places=self.places)
+            self.assertAlmostEqual(w, w0, places=self.places)
+            self.assertAlmostEqual(W, long_ascnode, places=self.places)
+            self.assertAlmostEqual(f, true_anom, places=self.places)
+
+    def test_in_reference_plane_argument_of_periapsis(self):
+        new_binary = new_binary_from_orbital_elements
+
+        m = 1|units.MSun
+        sma = 1|units.AU
+        ecc = 0.5
+        true_anom = 10
+        inc = 10
+        long_ascnode = 10
+        argper = numpy.linspace(0,359, 100) 
+        G = constants.G
+        
+        for w0 in argper:
+            binary = new_binary(m, m, sma,
+                                eccentricity=ecc,
+                                true_anomaly=true_anom,
+                                inclination=inc,
+                                longitude_of_the_ascending_node=long_ascnode,
+                                argument_of_periapsis=w0,
+                                G=G)
+
+            a, e, i, w, W, f = orbital_elements(binary)
+            self.assertAlmostEqual(a.number, sma.number, places=self.places)
+            self.assertAlmostEqual(e, ecc, places=self.places)
+            self.assertAlmostEqual(i, inc, places=self.places)
+            self.assertAlmostEqual(w, w0, places=self.places)
+            self.assertAlmostEqual(W, long_ascnode, places=self.places)
+            self.assertAlmostEqual(f, true_anom, places=self.places)
+
     @unittest.expectedFailure
     def test_in_reference_plane_eccentricity_parabolical(self):
         new_binary = new_binary_from_orbital_elements
@@ -1061,9 +1119,9 @@ if __name__ == "__main__":
                   test_orbital_elements,
                   test_orbital_elements_places4,
                   test_orbital_elements_places8,
-                  test_HDF5Handler_ndarrays,
-                  test_HDF5HandlerAmuseUnits,
-                  test_HDF5HandlerAmuse,
+                  #test_HDF5Handler_ndarrays,
+                  #test_HDF5HandlerAmuseUnits,
+                  #test_HDF5HandlerAmuse,
                  ]
 
     loader = unittest.TestLoader()
