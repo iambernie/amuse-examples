@@ -2,8 +2,6 @@
 # name: hdf5utils.py
 
 try:
-    from amuse.units import core
-    from amuse.units import units
     from amuse.units.quantities import Quantity
     from amuse.units.quantities import ScalarQuantity
     from amuse.units.quantities import VectorQuantity

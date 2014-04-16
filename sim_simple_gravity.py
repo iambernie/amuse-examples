@@ -3,7 +3,6 @@ import argparse
 import numpy
 
 from amuse.units import units as u
-from amuse.datamodel.particles import Particles
 from amuse.community.hermite0.interface import Hermite
 from amuse.units.nbody_system import nbody_to_si
 
