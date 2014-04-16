@@ -1119,9 +1119,9 @@ if __name__ == "__main__":
                   test_orbital_elements,
                   test_orbital_elements_places4,
                   test_orbital_elements_places8,
-                  #test_HDF5Handler_ndarrays,
-                  #test_HDF5HandlerAmuseUnits,
-                  #test_HDF5HandlerAmuse,
+                  test_HDF5Handler_ndarrays,
+                  test_HDF5HandlerAmuseUnits,
+                  test_HDF5HandlerAmuse,
                  ]
 
     loader = unittest.TestLoader()
