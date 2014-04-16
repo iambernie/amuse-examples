@@ -86,6 +86,7 @@ def main():
             period = period_vq.value_in(units.yr)
 
             true_anomaly = sim['p0/true_anomaly'].value
+            argument_of_periapsis = sim['p0/argument_of_periapsis'].value
 
             sma_vq = quantify_dset(sim['p0/sma'])
             sma = sma_vq.value_in(units.AU)
@@ -115,6 +116,10 @@ def main():
             newax3.plot(time, true_anomaly)
             newax3.set_xlabel('time [yr]')
             newax3.set_ylabel('true anomaly [degrees] ')
+
+            newax4.plot(time, argument_of_periapsis)
+            newax4.set_xlabel('time [yr]')
+            newax4.set_ylabel('argument of periapsis [degrees] ')
 
             newax5.plot(time, period)
             newax5.set_xlabel('time [yr]')

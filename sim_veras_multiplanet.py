@@ -149,6 +149,7 @@ def store_data(intr, state, datahandler):
         h.append(a, "sma")
         h.append(e, "eccentricity")
         h.append(f, "true_anomaly")
+        h.append(w, "argument_of_periapsis")
         h.append(period, "period")
         h.append(massloss_index, "massloss_index")
 
