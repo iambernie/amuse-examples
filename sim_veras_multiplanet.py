@@ -17,111 +17,8 @@ from amuse.community.smalln.interface import SmallN
 
 from ext.hdf5utils import HDF5HandlerAmuse
 from ext.misc import orbital_elements
+from ext.misc import MassState
 from ext.systems import veras_multiplanet
-from ext import progressbar as pb
-
-class MassState(object):
-    """
- 
-    Mass is updated at every dt_external (i.e. self.timestep) regardless of the 
-    internal timestep of the integrator.
-
-    starttime                                                             endtime
-    ==============================================================================
-    |      |      |      |      |      |      |      |      |      |      |      |
-    ==============================================================================
-
-      dt_i   dt_i   dt_i   dt_i   dt_i   dt_i   dt_i   dt_i   dt_i  
-     -----> -----> -----> -----> -----> -----> -----> -----> -----> 
-
-            dt_e                dt_e               dt_e            
-     -------------------> -------------------> ------------------->
-
-
-    starttime                                                             endtime
-    ==============================================================================
-    |           |        |      |   | | |     |        |          |              | 
-    ==============================================================================
-            dt_e                dt_e               dt_e            
-     -------------------> -------------------> ------------------->
-
-    """
-    def __init__(self, timestep, endtime, startmass, mdot, datapoints=200, 
-                 dt_param=None, name="None"):
-
-        if mdot*endtime > startmass:
-            raise Exception("mdot*endtime = negative endmass.")
-
-        self.name = name
-
-        self.starttime = 0 |units.yr
-        self.mdot = mdot  
-       
-        self.timestep = timestep
-        self.endtime = endtime
-        self.startmass = startmass
-        
-        self.time_and_mass = self.update()
-        self.savepoint = self.savepoints(datapoints)
-
-        self.stopmass_evo = False
-        self.stopsave = False
-
-    def update(self):
-        mass = self.startmass
-        mdot = self.mdot
-        time = self.starttime 
-        timestep = self.timestep
-        endtime = self.endtime
-        
-        while time != endtime:
-            if time + timestep >= endtime:
-                mass -= mdot *(endtime - time)
-                time = endtime
-                self.stopmass_evo = True
-                yield time, mass
-
-            else:
-                time += timestep
-                mass -= mdot * timestep
-                yield time, mass
-
-             
-    def savepoints(self, datapoints, verbose=True):
-        """ 
-        Generator to yield the points in time at which data needs to be saved.
-
-        """
-        unit = units.yr
-         
-        start, stop = self.starttime.value_in(unit), self.endtime.value_in(unit)
-        checkpoints = numpy.linspace(start, stop, datapoints)|unit
-
-        pbar = pb.ProgressBar(widgets=self.drawwidget(self.name), 
-                              maxval=len(checkpoints)).start()
-
-        for i, cp in enumerate(checkpoints):
-            pbar.update(i)
-            yield cp
-
-        pbar.finish()
-        self.stopsave = True
-
-    def drawwidget(self, proces_discription):
-        """ Formats the progressbar. """
-        widgets = [proces_discription.ljust(20), pb.Percentage(), ' ',
-                   pb.Bar(marker='#',left='[',right=']'),
-                   ' ', pb.ETA()]
-        return widgets
-
-
-    @property
-    def stop(self):
-        if self.stopmass_evo is True and self.stopsave is True:
-            return True
-        else:
-            return False
-
 
 def simulations(datahandler):
     """
@@ -136,13 +33,14 @@ def simulations(datahandler):
     integrators = dict(Mercury=Mercury, Hermite=Hermite, ph4=ph4, Huayno=Huayno,
                        SmallN=SmallN)
 
-    datahandler.file.attrs['info'] = "some meta data about simulations in this hdf5file."
+    datahandler.file.attrs['info'] = "some meta data about simulations."
 
     threebody = veras_multiplanet()
 
     mdot = args.mdot | (units.MSun/units.yr)
     endtime = args.endtime |units.yr
-    timesteps = numpy.arange(args.timesteps[0], args.timesteps[1], args.timesteps[2]) |units.yr
+    timesteps = numpy.arange(args.timesteps[0], args.timesteps[1], 
+                             args.timesteps[2]) |units.yr
     datapoints = args.datapoints
 
     for name in args.integrators:
@@ -159,11 +57,9 @@ def simulations(datahandler):
             evolve_system(intr, threebody, state, datahandler)
             datahandler.file.flush()
 
-
 def evolve_system(integrator, particles, state, datahandler):
     """
     Iteratively calls integrator.evolve_model().
-
 
     Parameters
     ----------
@@ -183,7 +79,6 @@ def evolve_system(integrator, particles, state, datahandler):
     savepoint = next(state.savepoint)
 
     while state.stop is False:
-        #Race Condition
         if savepoint < time:
             intr.evolve_model(savepoint)
             store_data(intr, state, datahandler)
@@ -218,7 +113,6 @@ def evolve_system(integrator, particles, state, datahandler):
                 pass
 
     intr.stop()
-
 
 def store_data(intr, state, datahandler):
     """
@@ -260,7 +154,6 @@ def store_data(intr, state, datahandler):
 
         datahandler.prefix = currentprefix
 
-
 def get_arguments():
     parser = argparse.ArgumentParser()
 
@@ -285,9 +178,10 @@ def get_arguments():
     parser.add_argument('--integrators', default=['SmallN'], nargs='+',
                         help="Integrators to use.")
 
-    parser.add_argument('--timesteps', type=float, default=[50, 100, 10], nargs=3,  
-                        help="Supply numpy.arange(START, STOP, STEP) arguments to \
-                        create an ndarray of timesteps. e.g.: --timesteps 10 100 10")
+    parser.add_argument('--timesteps', type=float, default=[50, 100, 10], 
+                        nargs=3, help="Supply numpy.arange(START, STOP, STEP) \
+                        arguments to create an ndarray of timesteps. \
+                        e.g.: --timesteps 10 100 10")
 
     args = parser.parse_args()
     return args

@@ -29,7 +29,8 @@ def create_mpeg(sim):
         frames = range(1, len(time), 5)
     else:
         frames = range(args.frames[0], args.frames[1], args.frames[2])
-    pbar = pb.ProgressBar(widgets=drawwidget(args.sim), maxval=frames[-1]).start()
+    pbar = pb.ProgressBar(widgets=drawwidget(args.sim), 
+                          maxval=frames[-1]).start()
 
 
     position_vq = quantify_dset(sim['position'])
@@ -52,8 +53,6 @@ def create_mpeg(sim):
     total_energy = sim['total_energy'].value
 
     mu0 = quantify_dset(sim['mass'])[0].sum()
-    #massloss_index_inner = sim['p0/massloss_index'].value
-    #massloss_index_outer = sim['p1/massloss_index'].value
 
     sma_inner_vq = quantify_dset(sim['p0/sma'])
     sma_inner = sma_inner_vq.value_in(units.AU)
@@ -66,20 +65,20 @@ def create_mpeg(sim):
     true_anomaly_inner = sim['p0/true_anomaly'].value
     true_anomaly_outer = sim['p1/true_anomaly'].value
 
-    sma_inner_analytical_vq = sma_analytical(sma_inner_vq[0], 1.244e-5|(units.MSun/units.yr), time_vq, mu0)
+    sma_inner_analytical_vq = sma_analytical(sma_inner_vq[0], 
+                                  1.244e-5|(units.MSun/units.yr), time_vq, mu0)
     sma_inner_analytical = sma_inner_analytical_vq.value_in(units.AU)
-    sma_outer_analytical_vq = sma_analytical(sma_outer_vq[0], 1.244e-5|(units.MSun/units.yr), time_vq, mu0)
+    sma_outer_analytical_vq = sma_analytical(sma_outer_vq[0], 
+                                  1.244e-5|(units.MSun/units.yr), time_vq, mu0)
     sma_outer_analytical = sma_outer_analytical_vq.value_in(units.AU)
 
-    #eccentricity_inner_analytical = eccentricity_analytical(eccentricity_inner[0],
-    #                                    massloss_index_inner[0], true_anomaly_inner)
-    #eccentricity_outer_analytical = eccentricity_analytical(eccentricity_outer[0],
-    #                                    massloss_index_outer[0], true_anomaly_outer)
-
     x, y = 0, 1
-    central_x, central_y =  position[:, 0, x] - CM_position[:,x], position[:, 0, y] - CM_position[:,y]
-    inner_x, inner_y =  position[:, 1, x] - CM_position[:,x], position[:, 1, y] - CM_position[:,y]
-    outer_x, outer_y =  position[:, 2, x] - CM_position[:,x], position[:, 2, y] - CM_position[:,y]
+    central_x = position[:, 0, x] - CM_position[:,x]
+    central_y = position[:, 0, y] - CM_position[:,y]
+    inner_x = position[:, 1, x] - CM_position[:,x]
+    inner_y = position[:, 1, y] - CM_position[:,y]
+    outer_x = position[:, 2, x] - CM_position[:,x]
+    outer_y = position[:, 2, y] - CM_position[:,y]
 
     nr_datapoints = len(time)
     yrs_per_datapoint =  time[-1]/nr_datapoints
@@ -100,9 +99,12 @@ def create_mpeg(sim):
     orange = '#FF6500'
     green = '#07D100'
 
-    central_loc, = ax1.plot([], [], c='y', ls="o", mfc="y", mec="y", marker='o', ms=6 )
-    inner_loc, = ax1.plot([], [], c='w', ls="o", mfc="w", mec="w", marker='o', ms=4 )
-    outer_loc, = ax1.plot([], [], c='w', ls="o", mfc="w", mec="w", marker='o', ms=4 )
+    central_loc, = ax1.plot([], [], c='y', ls="o", mfc="y", mec="y", marker='o',
+                            ms=6)
+    inner_loc, = ax1.plot([], [], c='w', ls="o", mfc="w", mec="w", marker='o',
+                          ms=4)
+    outer_loc, = ax1.plot([], [], c='w', ls="o", mfc="w", mec="w", marker='o',
+                          ms=4)
     inner_artist, = ax1.plot([], [], c=green, ls="-", lw=2, alpha=0.8)
     outer_artist, = ax1.plot([], [], c='r', ls="-", lw=2, alpha=0.8)
     sma0_ana_artist, = ax2.plot([], [], c='w', ls="-", lw=2)
@@ -164,8 +166,6 @@ def create_mpeg(sim):
             sma1_ana_artist.set_data(time[0:i], sma_outer_analytical[0:i])
             ecc0_artist.set_data(time[0:i], eccentricity_inner[0:i])
             ecc1_artist.set_data(time[0:i], eccentricity_outer[0:i])
-            #ecc0_ana_artist.set_data(time[0:i], eccentricity_inner_analytical[0:i])
-            #ecc1_ana_artist.set_data(time[0:i], eccentricity_outer_analytical[0:i])
             true_anomaly0_artist.set_data(time[0:i], true_anomaly_inner[0:i])
             true_anomaly1_artist.set_data(time[0:i], true_anomaly_outer[0:i])
             K_artist.set_data(time[0:i], kinetic_energy[0:i]) 
@@ -185,8 +185,6 @@ def create_mpeg(sim):
             sma1_ana_artist.set_data(time_range, sma_outer_analytical[i-lag:i])
             ecc0_artist.set_data(time_range, eccentricity_inner[i-lag:i])
             ecc1_artist.set_data(time_range, eccentricity_outer[i-lag:i])
-            #ecc0_ana_artist.set_data(time_range, eccentricity_inner_analytical[i-lag:i])
-            #ecc1_ana_artist.set_data(time_range, eccentricity_outer_analytical[i-lag:i])
             true_anomaly0_artist.set_data(time_range, true_anomaly_inner[i-lag:i])
             true_anomaly1_artist.set_data(time_range, true_anomaly_outer[i-lag:i])
             K_artist.set_data(time_range, kinetic_energy[i-lag:i]) 
@@ -221,7 +219,8 @@ def create_mpeg(sim):
         ax9.set_xlim(tbegin, t)
         pbar.update(i)
 
-    ffmpeg = animation.FFMpegWriter(fps=30, codec='mpeg4', extra_args=['-vcodec','libx264'])
+    ffmpeg = animation.FFMpegWriter(fps=30, codec='mpeg4', 
+                                    extra_args=['-vcodec','libx264'])
     anim = animation.FuncAnimation(fig, update_fig, frames=frames, interval=50)
 
     if args.animate:
@@ -233,18 +232,12 @@ def create_mpeg(sim):
 def sma_analytical(a0, mdot, t, mu0):
     return a0/(1 - mdot*t/mu0)
 
-#def eccentricity_analytical(e0, phi0, f_in_deg):
-#    f_in_rad = numpy.radians(f_in_deg)
-#    return e0 + phi0*(1-e0**2)**(3.0/2)*numpy.sin(f_in_rad)/(1-e0*numpy.cos(f_in_rad)) 
-
-
 def drawwidget(proces_discription):
     """ Formats the progressbar. """
     widgets = [proces_discription.ljust(20), pb.Percentage(), ' ',
                pb.Bar(marker='#',left='[',right=']'),
                ' ', pb.ETA()]
     return widgets
-
 
 def get_arguments():
     parser = argparse.ArgumentParser()
@@ -260,10 +253,12 @@ def get_arguments():
                         help="Don't save")
     parser.add_argument('--frames', type=int, default=None, nargs=3,
                         help="range() arguments: range(START, STOP, STEP) to \
-                        set frames keyword in FuncAnimation e.g.: --frames 0 250000 10")
+                        set frames keyword in FuncAnimation \
+                        e.g.: --frames 0 250000 10")
     args = parser.parse_args()
     if args.output is None and args.animate is None:
-        raise Exception("--output must be specified or --animate switch must be on.")
+        raise Exception("--output must be specified or \
+                         --animate switch must be on.")
     return args
 
 if __name__ == "__main__":

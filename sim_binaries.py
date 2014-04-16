@@ -24,8 +24,6 @@ def simulations():
     """
     Simulates a binary system with different starting eccentricities.
 
-    Writes data to hdf5 using the following structure:
-
     """
     M = args.centralmass | units.MSun
     m = args.orbitmass | units.MSun
@@ -72,7 +70,6 @@ def evolve_system(integrator, particles, state, datahandler):
     savepoint = next(state.savepoint)
 
     while state.stop is False:
-        #Race Condition
         if savepoint < time:
             intr.evolve_model(savepoint)
             store_data(intr, state, datahandler)
@@ -105,7 +102,6 @@ def evolve_system(integrator, particles, state, datahandler):
                 savepoint = next(state.savepoint)
             except StopIteration:
                 pass
-
     intr.stop()
 
 def store_data(intr, state, datahandler):

@@ -28,7 +28,6 @@ def main():
         ax1.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
         ax2.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
 
-
         for sim in intr.values():
             time = (quantify_dset(sim['time'])).value_in(units.yr)
             eccentricity = sim['p0/eccentricity'].value
@@ -67,7 +66,7 @@ def sma_analytical(a0, mdot, t, mu0):
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f','--filename', required=True,
-                        help="hdf5 file created by sim_veras_multiplanet.py")
+                        help="hdf5 file created by sim_binaries.py")
     args = parser.parse_args()
     return args
 

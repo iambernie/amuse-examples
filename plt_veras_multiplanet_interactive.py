@@ -2,14 +2,12 @@
 
 import argparse
 import h5py
-import numpy
 
 import matplotlib.pyplot as plt
 
 from amuse.units import units
 from amuse.units.quantities import AdaptingVectorQuantity
 
-from ext.misc import printdset
 from ext.misc import retrieve_unit
 from ext.misc import quantify_dset
 
@@ -176,7 +174,6 @@ def main():
         newfig.show()
 
     fig.canvas.mpl_connect('pick_event', onpick) 
-    #fig.canvas.mpl_connect('button_press_event', onclick) 
     plt.show()
 
          
