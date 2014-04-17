@@ -62,6 +62,10 @@ def main():
     ax2.axhline(outer_sma_final_adiabatic_approx, xmin=0, xmax=1, c='m', label='adiabatic approx')
     ax2.legend(loc='best')
 
+    if args.logscale:
+        ax1.set_xscale('log')
+        ax2.set_xscale('log')
+
 
     def onpick(event):
         print("artist:{} ind:{}".format(event.artist, event.ind))
@@ -237,6 +241,7 @@ class Dots(object):
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('filename', help="hdf5 file created by sim_veras_multiplanet.py")
+    parser.add_argument('--logscale', action='store_true', help="set x axis to logscale")
     args = parser.parse_args()
     return args
 
