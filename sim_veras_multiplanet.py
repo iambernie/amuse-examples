@@ -41,9 +41,17 @@ def simulations(datahandler):
 
     mdot = args.mdot | (units.MSun/units.yr)
     endtime = args.endtime |units.yr
-    timesteps = numpy.arange(args.timesteps[0], args.timesteps[1], 
-                             args.timesteps[2]) |units.yr
     datapoints = args.datapoints
+
+    if args.logspace:
+        timesteps = numpy.logspace(args.timesteps[0], args.timesteps[1], 
+                                 args.timesteps[2]) |units.yr
+    elif args.linspace:
+        timesteps = numpy.linspace(args.timesteps[0], args.timesteps[1], 
+                                 args.timesteps[2]) |units.yr
+    else:
+        timesteps = numpy.arange(args.timesteps[0], args.timesteps[1], 
+                                 args.timesteps[2]) |units.yr
 
     for name in args.integrators:
         if name in integrators:
@@ -165,14 +173,22 @@ def get_arguments():
     parser.add_argument('--orbitmass', type=float, default=0.001,
                         help="Mass of the orbiting body in MSun")
 
-    parser.add_argument('--endtime', type=float,  default=5e5,
+    parser.add_argument('--endtime', type=float, default=5e5,
                         help="Endtime in yr")
 
-    parser.add_argument('--datapoints', type=int,  default=200,
+    parser.add_argument('--datapoints', type=int, default=200,
                         help="Number of datapoints.")
 
     parser.add_argument('--integrators', default=['SmallN'], nargs='+',
                         help="Integrators to use.")
+
+    parser.add_argument('--logspace', action='store_true', 
+                        help="Use numpy.logspace in stead of numpy.arange \
+                              to set timesteps.")
+
+    parser.add_argument('--linspace', action='store_true', 
+                        help="Use numpy.linspace in stead of numpy.arange \
+                              to set timesteps.")
 
     parser.add_argument('--timesteps', type=float, default=[50, 100, 10], 
                         nargs=3, help="Supply numpy.arange(START, STOP, STEP) \

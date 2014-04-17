@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import subprocess
 import argparse
 import numpy
 import time as Time
@@ -35,6 +36,9 @@ def simulations():
 
     integrators = dict(Mercury=Mercury, Hermite=Hermite, ph4=ph4, Huayno=Huayno,
                        SmallN=SmallN)
+
+    datahandler.file.attrs['commit'] = subprocess.check_output(["git",
+                                           "rev-parse","HEAD"])
 
     eccentricities = numpy.arange(0, 1, 0.1)
     twobodies = [new_binary_from_elements(M, m, seperation, eccentricity=e)
@@ -132,6 +136,7 @@ def store_data(intr, state, datahandler):
     h.append(a, "sma")
     h.append(e, "eccentricity")
     h.append(f, "true_anomaly")
+    h.append(w, "argument_of_periapsis")
     h.append(period, "period")
     h.append(massloss_index, "massloss_index")
 
