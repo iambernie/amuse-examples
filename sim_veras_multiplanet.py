@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import subprocess
 import argparse
 import numpy
 import time as Time
@@ -33,7 +34,8 @@ def simulations(datahandler):
     integrators = dict(Mercury=Mercury, Hermite=Hermite, ph4=ph4, Huayno=Huayno,
                        SmallN=SmallN)
 
-    datahandler.file.attrs['info'] = "some meta data about simulations."
+    datahandler.file.attrs['commit'] = subprocess.check_output(["git",
+                                           "rev-parse","HEAD"]) 
 
     threebody = veras_multiplanet()
 
@@ -70,10 +72,6 @@ def evolve_system(integrator, particles, state, datahandler):
     """
     intr = integrator(nbody_to_si(particles.total_mass(), 1 |units.AU))
     intr.particles.add_particles(particles)
-
-    if hasattr(intr, "set_dt_param") and args.dtparam is not None:
-        intr.set_dt_param(args.dtparam)
-        datahandler.append(args.dtparam, "dtparam")
 
     time, mass = next(state.time_and_mass)
     savepoint = next(state.savepoint)
@@ -172,9 +170,6 @@ def get_arguments():
 
     parser.add_argument('--datapoints', type=int,  default=200,
                         help="Number of datapoints.")
-
-    parser.add_argument('--dtparam', type=float, default=None,  
-                        help="set_dt_param")
 
     parser.add_argument('--integrators', default=['SmallN'], nargs='+',
                         help="Integrators to use.")

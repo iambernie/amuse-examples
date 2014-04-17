@@ -34,7 +34,7 @@ class MassState(object):
 
     """
     def __init__(self, timestep, endtime, startmass, mdot, datapoints=200,
-                 dt_param=None, name="None"):
+                 name="None"):
 
         if mdot*endtime > startmass:
             raise Exception("mdot*endtime = negative endmass.")
