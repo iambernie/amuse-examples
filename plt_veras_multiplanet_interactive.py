@@ -11,6 +11,8 @@ from amuse.units.quantities import AdaptingVectorQuantity
 from ext.misc import retrieve_unit
 from ext.misc import quantify_dset
 
+#TODO: read mdot=1.244e-5 from hdf5 file (now, it's hardcoded)
+
 def main():
 
     dots = Dots()
@@ -44,14 +46,21 @@ def main():
         ax2.set_xlabel('Mass update interval [yr]')
         ax1.set_ylabel('final sma inner [AU]')
         ax2.set_ylabel('final sma outer [AU]')
-        
-    ax1.axhline(53.19, xmin=0, xmax=1, c='m', label='analytical')
-    ax1.legend(loc='best')
-    ax2.axhline(159.58, xmin=0, xmax=1, c='m', label='analytical')
-    ax2.legend(loc='best')
 
-    def sma_analytical(a0, mdot, t, mu0):
-        return a0*(1 - mdot*t/mu0)**(-1)
+    dset = f.values()[0].values()[0] #first dset available
+        
+    time = quantify_dset(dset['time']).value_in(units.yr)
+    mass = quantify_dset(dset['mass']).value_in(units.MSun)
+    inner_sma0 = quantify_dset(dset['p0/sma']).value_in(units.AU)
+    outer_sma0 = quantify_dset(dset['p1/sma']).value_in(units.AU)
+
+    inner_sma_final_adiabatic_approx = sma_analytical(inner_sma0[0], 1.244e-5, time[-1], mass[0].sum() )
+    outer_sma_final_adiabatic_approx = sma_analytical(outer_sma0[0], 1.244e-5, time[-1], mass[0].sum() )
+
+    ax1.axhline(inner_sma_final_adiabatic_approx, xmin=0, xmax=1, c='m', label='adiabatic approx')
+    ax1.legend(loc='best')
+    ax2.axhline(outer_sma_final_adiabatic_approx, xmin=0, xmax=1, c='m', label='adiabatic approx')
+    ax2.legend(loc='best')
 
 
     def onpick(event):
@@ -181,6 +190,9 @@ def main():
     fig.canvas.mpl_connect('pick_event', onpick) 
     plt.show()
 
+def sma_analytical(a0, mdot, t, mu0):
+    return a0*(1 - mdot*t/mu0)**(-1)
+
          
 class Line(object):
     def __init__(self):
@@ -224,8 +236,7 @@ class Dots(object):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f','--filename', required=True,
-                        help="hdf5 file created by sim_veras_multiplanet.py")
+    parser.add_argument('filename', help="hdf5 file created by sim_veras_multiplanet.py")
     args = parser.parse_args()
     return args
 
