@@ -109,6 +109,60 @@ class MassState(object):
             return False
 
 
+class VariableMassState(MassState):
+    def __init__(self, endtime, startmass, mdot, datapoints=200,
+                 eta=0.1, name="None"):
+
+        if mdot*endtime > startmass:
+            raise Exception("mdot*endtime = negative endmass.")
+
+        self.eta = eta
+        self.intr = None
+
+        self.name = name
+
+        self.starttime = 0 |units.yr
+        self.mdot = mdot
+
+        self.endtime = endtime
+        self.startmass = startmass
+
+        self.time_and_mass = self.update()
+        self.savepoint = self.savepoints(datapoints)
+
+        self.stopmass_evo = False
+        self.stopsave = False
+
+    def update(self):
+        mass = self.startmass
+        mdot = self.mdot
+        time = self.starttime
+        eta = self.eta
+        #timestep = self.timestep
+        endtime = self.endtime
+        intr = self.intr
+
+        while time != endtime:
+            sma = semimajoraxis_from_binary(intr.particles)
+            total_mass = intr.particles.mass.sum()
+            period = ((2*numpy.pi)**2*sma**3/(constants.G*total_mass)).sqrt()
+            timestep = total_mass*eta/(period*mdot)
+             
+            if time + timestep >= endtime:
+                mass -= mdot *(endtime - time)
+                time = endtime
+                self.stopmass_evo = True
+                yield time, mass
+
+            else:
+                
+                time += timestep
+                mass -= mdot * timestep
+                yield time, mass
+ 
+      
+
+
 def semimajoraxis_from_binary(binary, G=constants.G):
     """ Calculates the semimajoraxis of a binary system. """
 
