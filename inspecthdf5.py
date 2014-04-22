@@ -10,7 +10,7 @@ def main():
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f','--filename', required=True,
+    parser.add_argument('filename', 
                         help="hdf5 file created by sim_veras_multiplanet.py")
     args = parser.parse_args()
     return args

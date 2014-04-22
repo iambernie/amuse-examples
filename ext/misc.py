@@ -138,15 +138,14 @@ class VariableMassState(MassState):
         mdot = self.mdot
         time = self.starttime
         eta = self.eta
-        #timestep = self.timestep
         endtime = self.endtime
         intr = self.intr
 
         while time != endtime:
-            sma = semimajoraxis_from_binary(intr.particles)
+            #sma = semimajoraxis_from_binary(intr.particles)
+            #period = ((2*numpy.pi)**2*sma**3/(constants.G*total_mass)).sqrt()
             total_mass = intr.particles.mass.sum()
-            period = ((2*numpy.pi)**2*sma**3/(constants.G*total_mass)).sqrt()
-            timestep = total_mass*eta/(period*mdot)
+            timestep = total_mass/mdot*eta
              
             if time + timestep >= endtime:
                 mass -= mdot *(endtime - time)

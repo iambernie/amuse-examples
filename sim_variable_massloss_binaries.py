@@ -31,7 +31,7 @@ def simulations():
     mdot = args.mdot | (units.MSun/units.yr)
     seperation = args.seperation | units.AU
     datapoints = args.datapoints
-    eta = args.eta | units.yr
+    eta = args.eta 
     endtime = args.endtime | units.yr
 
     integrators = dict(Mercury=Mercury, Hermite=Hermite, ph4=ph4, Huayno=Huayno,
@@ -163,13 +163,13 @@ def get_arguments():
     parser.add_argument('--seperation', type=float, default=200,
                         help="Initial seperation in AU")
 
-    parser.add_argument('-e', '--eta', type=float, default=0.1,
-                        help="Scale parameter in yrs.")
+    parser.add_argument('-e', '--eta', type=float, default=10,
+                        help="Scale parameter.")
 
     parser.add_argument('--endtime', type=float, default=1.5e4,
                         help="endtime in years.")
 
-    parser.add_argument('--datapoints', type=int,  default=1000,
+    parser.add_argument('--datapoints', type=int,  default=100,
                         help="Number of datapoints.")
 
     parser.add_argument('--integrators', default=['SmallN'], nargs='+',
