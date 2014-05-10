@@ -3,12 +3,44 @@
 
 import h5py
 import numpy
+import argparse
+
+from amuse.community.mercury.interface import Mercury
+from amuse.community.hermite0.interface import Hermite
+from amuse.community.ph4.interface import ph4
+from amuse.community.huayno.interface import Huayno
+from amuse.community.smalln.interface import SmallN
 
 from amuse.units import units, constants, core
 from amuse.datamodel.particles import Particles
 from amuse.ext import orbital_elements as orbital_elements_amuse
 import progressbar as pb
 
+def args_quantify(unit):
+    class QuantifyAction(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string=None):
+            quantity = values | unit
+            setattr(namespace, self.dest, quantity)
+    return QuantifyAction
+
+def args_integrators():
+    valid_integrators = dict(Mercury=Mercury, Hermite=Hermite, ph4=ph4, Huayno=Huayno,
+                             SmallN=SmallN)
+
+    class IntegratorsAction(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string=None):
+           
+            integrators = []
+
+            for name in values: 
+                if name in valid_integrators:
+                    integrators.append(valid_integrators[name])
+                else:
+                    raise Exception('Invalid integrator: {}'.format(name))
+                
+            setattr(namespace, self.dest, integrators)
+    return IntegratorsAction
+    
 
 
 class Parameters(object):
