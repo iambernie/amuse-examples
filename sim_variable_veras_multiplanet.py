@@ -10,7 +10,6 @@ from amuse.units import constants
 from amuse.units import units 
 from amuse.units.nbody_system import nbody_to_si
 
-from amuse.community.mercury.interface import Mercury
 from amuse.community.hermite0.interface import Hermite
 from amuse.community.ph4.interface import ph4
 from amuse.community.huayno.interface import Huayno
@@ -19,9 +18,54 @@ from amuse.community.smalln.interface import SmallN
 from ext.hdf5utils import HDF5HandlerAmuse
 from ext.misc import orbital_elements
 from ext.misc import VariableMassState
-from ext.systems import veras_multiplanet
+from ext.misc import args_quantify
+from ext.misc import args_integrators
 
-def simulations(datahandler):
+from ext import systems
+
+def main():
+    integrators = '_'.join([intr.__name__[:2] for intr in args.integrators])
+
+    assert args.mdot*args.endtime < args.centralmass
+
+    if args.logspace:
+        space = 'logspace'
+        etas = numpy.logspace(*args.etas)
+    elif args.linspace:
+        space = 'linspace'
+        etas = numpy.linspace(*args.etas)
+    else:
+        space = 'arange'
+        etas = numpy.arange(*args.etas)
+
+    if not args.filename:
+        spacing = "_".join([str(i) for i in args.etas])
+        subst = (args.centralmass.number, args.orbitmass.number,
+                 args.mdot.number, args.smainner.number, spacing, space, args.endtime.number,
+                 args.datapoints, integrators)
+        name = 'variable_multiplanet_M{}_m{}_mdot{}_sma_in{}__i{}_{}_t{}_p{}_{}.hdf5'.format(*subst)
+        filename = args.directory+name
+    else:
+        filename = args.filename
+
+    with HDF5HandlerAmuse(filename) as datahandler:
+        commit = subprocess.check_output(["git", "rev-parse","HEAD"])
+
+        datahandler.file.attrs['commit'] = commit
+        datahandler.file.attrs['M'] = str(args.centralmass)
+        datahandler.file.attrs['m'] = str(args.orbitmass)
+        datahandler.file.attrs['mdot'] = str(args.mdot)
+        datahandler.file.attrs['sma'] = str(args.smainner)
+        datahandler.file.attrs['space'] = space
+        datahandler.file.attrs['etas'] = spacing
+        datahandler.file.attrs['endtime'] = str(args.endtime)
+        datahandler.file.attrs['datapoints'] = args.datapoints
+        datahandler.file.attrs['integrators'] = integrators
+
+        simulations(datahandler, etas)
+
+
+def simulations(datahandler, etas):
     """
     Set up the simulations here.
 
@@ -31,39 +75,16 @@ def simulations(datahandler):
         - call evolve_system()
 
     """
-    integrators = dict(Mercury=Mercury, Hermite=Hermite, ph4=ph4, Huayno=Huayno,
-                       SmallN=SmallN)
+    body1 = dict(mass=args.orbitmass, elements=dict(semimajor_axis=args.smainner, eccentricity=0))
+    body2 = dict(mass=args.orbitmass, elements=dict(semimajor_axis=args.smaouter, eccentricity=0.5))
+    threebody = systems.nbodies(args.centralmass, body1, body2)
 
-    datahandler.file.attrs['commit'] = subprocess.check_output(["git",
-                                           "rev-parse","HEAD"]) 
-
-    threebody = veras_multiplanet()
-
-    mdot = args.mdot | (units.MSun/units.yr)
-    endtime = args.endtime |units.yr
-    datapoints = args.datapoints
-
-    if args.logspace:
-        etas = numpy.logspace(args.etas[0], args.etas[1], 
-                                 args.etas[2]) 
-    elif args.linspace:
-        etas = numpy.linspace(args.etas[0], args.etas[1], 
-                                 args.etas[2])
-    else:
-        etas = numpy.arange(args.etas[0], args.etas[1], 
-                                 args.etas[2])
-
-    for name in args.integrators:
-        if name in integrators:
-            intr = integrators[name]
-        else:
-            continue
-
+    for intr in args.integrators:
         for i, eta in enumerate(etas):
             datahandler.prefix = intr.__name__+"/sim_"+str(i).zfill(4)+"/"
             datahandler.append(eta, "eta")
-            state = VariableMassState(endtime, threebody[0].mass, mdot, 
-                              datapoints=datapoints, eta=eta, name=datahandler.prefix)
+            state = VariableMassState(args.endtime, threebody[0].mass, args.mdot, 
+                              datapoints=args.datapoints, eta=eta, name=datahandler.prefix)
             evolve_system(intr, threebody, state, datahandler)
             datahandler.file.flush()
 
@@ -146,7 +167,7 @@ def store_data(intr, state, datahandler):
     p1.remove_particle(p1[1])
 
     for i, pset in enumerate([p0, p1]):
-        currentprefix = datahandler.prefix
+        currentprefix = datahandler.prefix        
         datahandler.prefix = currentprefix+"p"+str(i)+"/"
 
         a, e, i, w, W, f = orbital_elements(pset)
@@ -156,33 +177,63 @@ def store_data(intr, state, datahandler):
         massloss_index = state.mdot / (mean_motion*mu)
         h.append(a, "sma")
         h.append(e, "eccentricity")
+        h.append(i, "inclination")
         h.append(f, "true_anomaly")
         h.append(w, "argument_of_periapsis")
+        h.append(W, "longitude_of_ascending_node")
         h.append(period, "period")
         h.append(massloss_index, "massloss_index")
-
         datahandler.prefix = currentprefix
+
 
 def get_arguments():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-f','--filename', required=True, 
+
+    parser.add_argument('-f','--filename',
                         help="Filepath for hdf5 file.")
 
-    parser.add_argument('--mdot', type=float, default=1.244e-5,
-                        help="Masslossrate in MSun/Yr")
+    parser.add_argument('-d','--directory', default='data/',
+                        help="Target directory for hdf5 file.")
 
-    parser.add_argument('--orbitmass', type=float, default=0.001,
+    parser.add_argument('--mdot', type=float,
+                        default=1.244e-5 | (units.MSun/units.yr),
+                        action=args_quantify(units.MSun/units.yr),
+                        help="Masslossrate in MSun/yr")
+
+    parser.add_argument('-M', '--centralmass', type=float,
+                        default=7.659 | units.MSun,
+                        action=args_quantify(units.MSun),
                         help="Mass of the orbiting body in MSun")
 
-    parser.add_argument('--endtime', type=float, default=5e5,
-                        help="Endtime in yr")
+    parser.add_argument('-m', '--orbitmass', type=float,
+                        default=0.001 | units.MSun,
+                        action=args_quantify(units.MSun),
+                        help="Mass of the orbiting body in MSun")
 
-    parser.add_argument('--datapoints', type=int, default=200,
+    parser.add_argument('--smainner', type=float,
+                        default=10 | units.AU,
+                        action=args_quantify(units.AU),
+                        help="Initial semimajoraxis in AU (inner body)")
+
+    parser.add_argument('--smaouter', type=float,
+                        default=30 | units.AU,
+                        action=args_quantify(units.AU),
+                        help="Initial semimajoraxis in AU (outer body)")
+
+    parser.add_argument('--endtime', type=float,
+                        default=5e5 | units.yr,
+                        action=args_quantify(units.yr),
+                        help="endtime in years.")
+
+    parser.add_argument('--integrators', nargs='+',
+                        default=[SmallN, ph4, Hermite, Huayno],
+                        action=args_integrators(),
+                        help="Integrators to use. Valid integrators:\
+                        Hermite, SmallN, ph4, Huayno")
+
+    parser.add_argument('--datapoints', type=int, default=500,
                         help="Number of datapoints.")
-
-    parser.add_argument('--integrators', default=['SmallN'], nargs='+',
-                        help="Integrators to use.")
 
     parser.add_argument('--logspace', action='store_true', 
                         help="Use numpy.logspace in stead of numpy.arange \
@@ -194,8 +245,8 @@ def get_arguments():
 
     parser.add_argument('--etas', type=float, default=[0.1, 2, 0.1], 
                         nargs=3, help="Supply numpy.arange(START, STOP, STEP) \
-                        arguments to create an ndarray of timesteps. \
-                        e.g.: --timesteps 10 100 10")
+                        arguments to create an ndarray of etas. \
+                        e.g.: --etas 10 100 10")
 
     args = parser.parse_args()
     return args
@@ -203,8 +254,7 @@ def get_arguments():
 if __name__ == "__main__":
     args = get_arguments()
     print(args)
+    main()
 
-    with HDF5HandlerAmuse(args.filename) as datahandler:
-        simulations(datahandler)
 
 

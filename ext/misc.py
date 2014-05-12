@@ -432,7 +432,7 @@ def new_binary_from_elements(*args, **kwargs):
     binary.velocity += binary.center_of_mass_velocity()
     return binary
 
-def nearly_equal(a,b,sig_fig=4):
+def nearly_equal(a, b, sig_fig=4):
     return (a==b or int(a*10**sig_fig) == int(b*10**sig_fig))
 
 def quantify_dset(dset): 

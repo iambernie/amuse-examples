@@ -9,35 +9,30 @@ import time as Time
 from amuse.units import units 
 from amuse.units import constants 
 from amuse.units.nbody_system import nbody_to_si
-from amuse.community.mercury.interface import Mercury
 from amuse.community.hermite0.interface import Hermite
 from amuse.community.ph4.interface import ph4
 from amuse.community.huayno.interface import Huayno
 from amuse.community.smalln.interface import SmallN
 
+from ext.hdf5utils import HDF5HandlerAmuse
 from ext.misc import MassState
 from ext.misc import new_binary_from_elements
 from ext.misc import orbital_elements
 from ext.misc import args_quantify
 from ext.misc import args_integrators
-from ext.hdf5utils import HDF5HandlerAmuse
 
 def main():
-    M = args.centralmass.number 
-    m = args.orbitmass.number
-    mdot = args.mdot.number
-    sma = args.sma.number
-    interval = args.interval.number
-    endtime = args.endtime.number
-    datapoints = args.datapoints
     integrators = '_'.join([intr.__name__[:2] for intr in args.integrators])
 
     if not args.filename:
-        subst = (M, m, mdot, sma, interval, endtime, datapoints, integrators)
+        subst = (args.centralmass.number, args.orbitmass.number, 
+                 args.mdot.number, args.sma.number, args.interval.number, 
+                 args.endtime.number, args.datapoints, integrators)
         name = 'binaries_M{}_m{}_mdot{}_s{}_i{}_t{}_p{}_{}.hdf5'.format(*subst)
         filename = args.directory+name
     else:
         filename = args.filename
+
 
     with HDF5HandlerAmuse(filename) as datahandler:
         eccentricities = numpy.arange(0, 1, 0.1)
@@ -54,10 +49,10 @@ def main():
         datahandler.file.attrs['datapoints'] = args.datapoints
         datahandler.file.attrs['integrators'] = integrators
 
-        simulations(datahandler, filename, eccentricities)
+        simulations(datahandler, eccentricities)
 
 
-def simulations(datahandler, filename, eccentricities):
+def simulations(datahandler, eccentricities):
     """ Simulates a binary system with different starting eccentricities. """
 
     twobodies = [new_binary_from_elements(args.centralmass, args.orbitmass, 
@@ -65,9 +60,8 @@ def simulations(datahandler, filename, eccentricities):
                                           for e in eccentricities]
 
     for intr in args.integrators:
-        name = intr.__name__
         for i, bodies in enumerate(twobodies):
-            datahandler.prefix = '/'+name+'/'+str(i).zfill(4)+'/'
+            datahandler.prefix = '/'+intr.__name__+'/'+str(i).zfill(4)+'/'
             state = MassState(args.interval, args.endtime, bodies[0].mass, 
                               args.mdot, args.datapoints, name=datahandler.prefix)
             evolve_system(intr, bodies, state, datahandler)
@@ -83,7 +77,7 @@ def evolve_system(integrator, particles, state, datahandler):
     datahandler: HDF5HandlerAmuse context manager
 
     """
-    intr = integrator(nbody_to_si(particles.total_mass(), 1 |units.AU))
+    intr = integrator(nbody_to_si(particles.total_mass(), 10 |units.AU))
     intr.particles.add_particles(particles)
 
     time, mass = next(state.time_and_mass)
