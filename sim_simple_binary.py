@@ -201,7 +201,7 @@ def get_arguments():
                         action=args_quantify(units.MSun/units.yr),
                         help="Masslossrate in MSun/yr")
 
-    parser.add_argument('--elements', type=float,
+    parser.add_argument('--elements', type=float, nargs=6,
                         default=[10, 0.5, 0, 0, 0, 0],
                         metavar='a e i w W f ',
                         help="Sequence of orbital elements interpreted as: \
