@@ -1,286 +1,296 @@
 #!/usr/bin/env python
 
+import os
+import numpy
+
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import cm
-import numpy
-import h5py
 
 from amuse.units import units
 from ext.misc import quantify_dset
-from ext.misc import Parameters
+from ext.misc import SimData
 
 from itertools import cycle
 
 def main():
     directory = 'figures/' 
-    binaries_highly_adiabatic_filename = 'data/binaries_seperation10_points1000_interval1yr_SmallN.hdf5'
-    binaries_highly_adiabatic_filename = 'data/binaries_seperation200_points1000_interval1yr_SmallN.hdf5'
-    binaries_highly_adiabatic_filename = 'data/binaries_seperation100_points1000_interval1yr_SmallN.hdf5'
-    binaries_highly_adiabatic_filename = 'testargper2.hdf5'
-    binaries_highly_adiabatic = Parameters(binaries_highly_adiabatic_filename)
-    
-    #TODO: plot suites    
-    #TODO: labels    
 
-    def plot_figure_01(integrator=None, imgname = '01.png'):
-        f = binaries_highly_adiabatic.hdf5file
-        if integrator is None:
-            integrator = binaries_highly_adiabatic.available_integrators()[0]
+    binaries_1 = SimData('data/binaries_M1_m0.001_mdot5e-05_s10.0_i1_t15000.0_p15000_Sm_ph_He_Hu.hdf5', figdir='binaries_10/')
+    binaries_2 = SimData('data/binaries_M1_m0.001_mdot5e-05_s50.0_i1_t15000.0_p15000_Sm_ph_He_Hu.hdf5', figdir='binaries_50/')
+    binaries_3 = SimData('data/binaries_M1_m0.001_mdot5e-05_s100.0_i1_t15000.0_p5000_Sm_ph_He_Hu.hdf5', figdir='binaries_100/')
+    binaries_4 = SimData('data/binaries_M1_m0.001_mdot5e-05_s150.0_i1_t15000.0_p5000_Sm_ph_He_Hu.hdf5', figdir='binaries_150/')
+    binaries_5 = SimData('data/binaries_M1_m0.001_mdot5e-05_s200.0_i1_t15000.0_p5000_Sm_ph_He_Hu.hdf5', figdir='binaries_200/')
+    binaries_6 = SimData('data/binaries_M1_m0.001_mdot5e-05_s1000.0_i1_t15000.0_p5000_Sm_ph_He_Hu.hdf5', figdir='binaries_1000/')
+    
+
+    def binaries(simdata, **kwargs):
+        f = simdata.hdf5file
+        figdir = simdata.figdir
+        targetdir = directory+figdir
+
+        if not os.path.exists(targetdir):
+            os.makedirs(targetdir)
+
+        if 'integrator' in kwargs:
+           integrator = kwargs['integrator'] 
+        else: 
+            integrator = simdata.available_integrators()[0]
+
+        centralmass = float(simdata.parameters['M'].split()[0])
+        interval = float(simdata.parameters['interval'].split()[0])
+        datapoints = int(simdata.parameters['datapoints'])
+        mdot = float(simdata.parameters['mdot'].split()[0]) 
+        sma0 = float(simdata.parameters['sma'].split()[0]) 
+
+        print("sma0 {} AU".format(sma0))
+
+        firstavailablesim = f[integrator].values()[0]
+
+        time = quantify_dset(firstavailablesim['time']).value_in(units.yr)
+        totalmass = quantify_dset(firstavailablesim['mass']).lengths().value_in(units.MSun)
+
+        smas = []
+        eccentricities = []
+        ecc_labels = []
+        smas_ad = []
+        ml_indices = []
+        arguments_of_periapsis = []
+        angular_momenta = []
+        true_anomalies = []
+        periods = []
+        
+        for sim in f[integrator].values():
+            sma = quantify_dset(sim['p0/sma']).value_in(units.AU)
+            smas.append(sma)
+            smas_ad.append(sma_analytical(sma0, mdot, time, centralmass))
+            ml_indices.append(sim['p0/massloss_index'].value)
+            eccentricities.append(sim['p0/eccentricity'].value)
+            ecc_labels.append("e0= "+str(round(sim['p0/eccentricity'][0], 1)) )
+            arguments_of_periapsis.append(sim['p0/argument_of_periapsis'].value)
+            periods.append(quantify_dset(sim['p0/period']).value_in(units.yr))
+            angular_momenta.append(quantify_dset(sim['angular_momentum']).number)
+            true_anomalies.append(sim['p0/true_anomaly'].value)
 
         cmap = cm.jet
-    
-        fig = plt.figure(figsize=(32,8))
-        ax = fig.add_subplot(111)
-        ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
+        savefigargs = dict(bbox_inches='tight', dpi=150)
 
-        for sim in f[integrator].values():
-            time = quantify_dset(sim['time']).value_in(units.yr)
-            sma = quantify_dset(sim['p0/sma']).value_in(units.AU)
-            eccentricity = sim['p0/eccentricity'].value
-            ax.plot(time, sma, lw=1, ls='-', label="e0= "+str(round(eccentricity[0], 1)))
+        def sma_vs_time():
+            imgname = 'sma_vs_time.png'
+            fig = plt.figure(figsize=(32,8))
+            ax = fig.add_subplot(111)
+            ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
+
+            for sma, lbl in zip(smas, ecc_labels):
+                ax.plot(time, sma, lw=1, ls='-', label=lbl)
+
             ax.set_xlim(time[0], time[-1])
-    
-        plt.savefig(directory+imgname, bbox_inches='tight', dpi=150)
-        plt.close()
+            ax.set_xlabel('time [yr]')
+            ax.set_ylabel('sma [AU]')
+            plt.savefig(targetdir+imgname, **savefigargs )
+            plt.close()
 
-    def plot_figure_02(integrator=None, imgname='02.png'):
-        f = binaries_highly_adiabatic.hdf5file
-        if integrator is None:
-            integrator = binaries_highly_adiabatic.available_integrators()[0]
+        def sma_vs_adiabaticity():
+            imgname = 'sma_vs_adiabaticity.png'
+            fig = plt.figure(figsize=(32,8))
+            ax = fig.add_subplot(111)
+            ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
 
-        cmap = cm.jet
+            for sma, ml_index, lbl in zip(smas, ml_indices, ecc_labels):
+                ax.plot(ml_index, sma, lw=1, ls='-', label=lbl)
 
-        fig = plt.figure(figsize=(32,8))
-        ax = fig.add_subplot(111)
-        ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
+            ax.set_xlim(ml_index[0], ml_index[-1])
+            ax.set_xlabel('massloss-index')
+            ax.set_ylabel('sma [AU]')
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
 
+        def sma_error_vs_time():
+            imgname = 'sma_error_vs_time.png'
+            fig = plt.figure(figsize=(32,8))
+            ax = fig.add_subplot(111)
+            ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
 
-        for sim in f[integrator].values():
-            time = quantify_dset(sim['time']).value_in(units.yr)
-            sma = quantify_dset(sim['p0/sma']).value_in(units.AU)
-            #TODO, store mdot and mu0 from in the hdf5 file so it doesn't
-            #need to be hardcoded here in the sma_adiabatic call
-            sma_adiabatic = sma_analytical(sma[0], 5e-5, time, 1)
-            eccentricity = sim['p0/eccentricity'].value
+            for sma, sma_ad, lbl in zip(smas, smas_ad, ecc_labels):
+                ax.plot(time, (sma-sma_ad)/sma_ad, lw=1, ls='-', label=lbl)
+        
             ax.set_xlim(time[0], time[-1])
+            ax.set_xlabel('time [yr]')
+            ax.set_ylabel('(sma-sma_ad)/sma_ad ')
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
 
-            ax.plot(time, (sma-sma_adiabatic)/sma_adiabatic, lw=1, ls='-', alpha=0.5, label="e0= "+str(round(eccentricity[0], 1)))
-    
-        plt.savefig(directory+imgname, bbox_inches='tight', dpi=150)
-        plt.close()
+        def sma_error_vs_adiabaticity():
+            imgname = 'sma_error_vs_adiabaticity.png'
+            fig = plt.figure(figsize=(32,8))
+            ax = fig.add_subplot(111)
+            ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
 
-    def plot_sma_vs_adiabaticity(integrator=None, imgname='02_ad.png'):
-        f = binaries_highly_adiabatic.hdf5file
-        if integrator is None:
-            integrator = binaries_highly_adiabatic.available_integrators()[0]
-
-        cmap = cm.jet
-
-        fig = plt.figure(figsize=(32,8))
-        ax = fig.add_subplot(111)
-        ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
-
-
-        for sim in f[integrator].values():
-            time = quantify_dset(sim['time']).value_in(units.yr)
-            ml_index = sim['p0/massloss_index'].value
-            sma = quantify_dset(sim['p0/sma']).value_in(units.AU)
-            sma_adiabatic = sma_analytical(sma[0], 5e-5, time, 1)
-            eccentricity = sim['p0/eccentricity'].value
+            for ml_index, sma_ad, lbl in zip(ml_indices, smas_ad, ecc_labels):
+                ax.plot(ml_index, (sma-sma_ad)/sma_ad, lw=1, ls='-', label=lbl)
+        
             ax.set_xlim(ml_index[0], ml_index[-1])
+            ax.set_xlabel('massloss-index')
+            ax.set_ylabel('(sma-sma_ad)/sma_ad ')
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
 
-            ax.plot(ml_index, (sma-sma_adiabatic)/sma_adiabatic, lw=1, ls='-', alpha=0.5, label="e0= "+str(round(eccentricity[0], 1)))
-    
-        plt.savefig(directory+imgname, bbox_inches='tight', dpi=150)
-        plt.close()
+        def eccentricity_vs_time():
+            imgname = 'eccentricity_vs_time.png'
+            fig = plt.figure(figsize=(32,16))
+            ax = fig.add_subplot(111)
+            ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
 
-    def plot_figure_03(integrator=None, imgname='03.png'):
-        f = binaries_highly_adiabatic.hdf5file
-        if integrator is None:
-            integrator = binaries_highly_adiabatic.available_integrators()[0]
+            for ecc, lbl in zip(eccentricities, ecc_labels):
+                ax.plot(time, ecc, lw=2, ls='-', label=lbl)
 
-        cmap = cm.jet
+            ax.set_xlim(time[0], time[-1])
+            ax.set_xlabel('time [yr]')
+            ax.set_ylabel('eccentricity')
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
 
-        fig = plt.figure(figsize=(32,16))
-        ax1 = fig.add_subplot(111)
-        ax1.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
+        def eccentricity_vs_adiabaticity():
+            imgname = 'eccentricity_vs_adiabaticity.png'
+            fig = plt.figure(figsize=(32,16))
+            ax = fig.add_subplot(111)
+            ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
 
-        for sim in f[integrator].values():
-            time = quantify_dset(sim['time']).value_in(units.yr)
-            eccentricity = sim['p0/eccentricity'].value
-            label = "e0= "+str(round(eccentricity[0], 1))
-            ax1.plot(time, eccentricity, lw=2, ls='-', label=label)
-            ax1.set_xlim(time[0], time[-1])
-    
-        plt.savefig(directory+imgname, bbox_inches='tight', dpi=150)
-        plt.close()
+            for ecc, ml_index, lbl in zip(eccentricities, ml_indices, ecc_labels):
+                ax.plot(ml_index, ecc, lw=2, ls='-', label=lbl)
 
-    def plot_eccentricity_vs_adiabaticity(integrator=None, imgname='03_ad.png'):
-        f = binaries_highly_adiabatic.hdf5file
-        if integrator is None:
-            integrator = binaries_highly_adiabatic.available_integrators()[0]
-
-        cmap = cm.jet
-
-        fig = plt.figure(figsize=(32,16))
-        ax = fig.add_subplot(111)
-        ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
-
-        for sim in f[integrator].values():
-            ml_index = sim['p0/massloss_index'].value
-            eccentricity = sim['p0/eccentricity'].value
-            label = "e0= "+str(round(eccentricity[0], 1))
-            ax.plot(ml_index, eccentricity, lw=2, ls='-', label=label)
             ax.set_xlim(ml_index[0], ml_index[-1])
-    
-        plt.savefig(directory+imgname, bbox_inches='tight', dpi=150)
-        plt.close()
+            ax.set_xlabel('massloss-index')
+            ax.set_ylabel('eccentricity')
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
 
-    def plot_figure_04(integrator=None, imgname='04.png'):
-        f = binaries_highly_adiabatic.hdf5file
-        if integrator is None:
-            integrator = binaries_highly_adiabatic.available_integrators()[0]
+        def sma_error_vs_eccentricity_error():
+            imgname = 'sma_error_vs_eccentricity_error.png'
+            fig = plt.figure(figsize=(32,8))
+            ax = fig.add_subplot(111)
+            ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
 
-        cmap = cm.jet
+            for sma, sma_ad, ecc, lbl in zip(smas, smas_ad, eccentricities, ecc_labels):
+                ax.plot((ecc-ecc[0])/ecc[0], (sma-sma_ad)/sma_ad, lw=1, ls='-', label=lbl)
+        
+            ax.set_xlabel('(ecc-ecc0)/ecc0')
+            ax.set_ylabel('(sma-sma_ad)/sma_ad ')
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
 
-        fig = plt.figure(figsize=(30, 10))
-        colorcycle = cycle(cmap(numpy.linspace(0, 0.95, 10)))
-        position_generator = axis_position(10, 1) 
+        def true_anomaly_vs_time():
+            imgname = 'true_anomaly_vs_time.png'
+            fig = plt.figure(figsize=(30, 10))
+            colorcycle = cycle(cmap(numpy.linspace(0, 0.95, 10)))
+            position_generator = axis_position(10, 1) 
 
-        totalsims = len(f[integrator].values())
+            totalsims = len(f[integrator].values())
 
-        for i, sim in enumerate(f[integrator].values()):
-            ax = fig.add_subplot(*next(position_generator))
-            time = quantify_dset(sim['time']).value_in(units.yr)
-            eccentricity = sim['p0/eccentricity'].value
-            true_anomaly = sim['p0/true_anomaly'].value
-            label = "e0= "+str(round(eccentricity[0], 1))
-            ax.plot(time, true_anomaly, lw=2, ls='-', c=next(colorcycle), label=label)
+            for i, true_anomaly, lbl in zip(range(totalsims), true_anomalies, ecc_labels):
+                ax = fig.add_subplot(*next(position_generator))
+                ax.plot(time, true_anomaly, lw=2, ls='-', c=next(colorcycle), label=lbl)
+
+                if i+1 != totalsims:
+                    ax.set_xticklabels([])
+                else:
+                    ax.set_xticks(numpy.arange(1000, 15000, 1000))
+
             ax.set_xlim(time[0], time[-1])
             ax.set_ylim(0, 360)
             ax.set_yticks([90, 180, 270])
+            ax.set_xlabel('time [yr]')
+            ax.set_ylabel('f [degrees]')
+        
+            plt.subplots_adjust(hspace=0.001)
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
 
-            if i+1 != totalsims:
-                ax.set_xticklabels([])
-            else:
-                ax.set_xticks(numpy.arange(1000, 15000, 1000))
-    
-        plt.subplots_adjust(hspace=0.001)
-        plt.savefig(directory+imgname, bbox_inches='tight', dpi=150)
-        plt.close()
+        def argument_of_periapsis_vs_time():
+            imgname = 'argument_of_periapsis_vs_time.png'
+            fig = plt.figure(figsize=(20, 20))
+            colorcycle = cycle(cmap(numpy.linspace(0, 0.95, 10)))
+            position_generator = axis_position(3, 4) 
 
-    def plot_figure_05(integrator=None, imgname='05.png'):
-        f = binaries_highly_adiabatic.hdf5file
-        if integrator is None:
-            integrator = binaries_highly_adiabatic.available_integrators()[0]
-        cmap = cm.jet
-        colorcycle = cycle(cmap(numpy.linspace(0, 0.95, 10)))
-        position_generator = axis_position(3, 4) 
+            for w, lbl in zip(arguments_of_periapsis, ecc_labels):
+                ax = fig.add_subplot(*next(position_generator), polar=True)
+                ax.plot(w, time, lw=1, ls='-',  c=next(colorcycle), label=lbl)
+                ax.set_rgrids(numpy.array([5000,10000,15000]), angle=270)
+        
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
 
-        fig = plt.figure(figsize=(20, 20))
+        def adiabaticity_vs_time():
+            imgname = 'adiabaticity_vs_time.png'
+            fig = plt.figure(figsize=(8, 16))
+            ax1 = fig.add_subplot(311)
+            ax2 = fig.add_subplot(312)
+            ax3 = fig.add_subplot(313)
+            colorcycle1 = cycle(cmap(numpy.linspace(0, 0.95, 10)))
+            colorcycle2 = cycle(cmap(numpy.linspace(0, 0.95, 10)))
+            colorcycle3 = cycle(cmap(numpy.linspace(0, 0.95, 10)))
 
-        for sim in f[integrator].values():
-            ax = fig.add_subplot(*next(position_generator), polar=True)
-            time = quantify_dset(sim['time']).value_in(units.yr)
-            eccentricity = sim['p0/eccentricity'].value
-            argument_of_periapsis = sim['p0/argument_of_periapsis'].value
-            label = "e0= "+str(round(eccentricity[0], 1))
-            ax.plot(argument_of_periapsis, time, lw=1, ls='-',  c=next(colorcycle), label=label)
-            ax.set_rgrids(numpy.array([5000,10000,15000]), angle=270)
-    
-        plt.savefig(directory+imgname, bbox_inches='tight', dpi=150)
-        plt.close()
+            for ml_index, period, lbl in zip(ml_indices, periods, ecc_labels):
+                ax1.plot(time, mdot/totalmass, lw=1, ls='-', c=next(colorcycle1), label=lbl)
+                ax2.plot(time, period, lw=1, ls='-', c=next(colorcycle2), label=lbl)
+                ax3.plot(time, ml_index, lw=1, ls='-', c=next(colorcycle3), label=lbl)
 
-    def plot_figure_06(integrator=None, imgname='06.png'):
-        f = binaries_highly_adiabatic.hdf5file
-        if integrator is None:
-            integrator = binaries_highly_adiabatic.available_integrators()[0]
-        cmap = cm.jet
-        colorcycle1 = cycle(cmap(numpy.linspace(0, 0.95, 10)))
-        colorcycle2 = cycle(cmap(numpy.linspace(0, 0.95, 10)))
-        colorcycle3 = cycle(cmap(numpy.linspace(0, 0.95, 10)))
+            ax3.set_yscale('log')
+            ax1.set_xlabel('time [yr]')
+            ax2.set_xlabel('time [yr]')
+            ax3.set_xlabel('time [yr]')
 
-        fig = plt.figure(figsize=(8, 16))
-        ax1 = fig.add_subplot(311)
-        ax2 = fig.add_subplot(312)
-        ax3 = fig.add_subplot(313)
+            plt.subplots_adjust(hspace=0.001)
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
 
-        for sim in f[integrator].values():
-            time = quantify_dset(sim['time']).value_in(units.yr)
-            eccentricity = sim['p0/eccentricity'].value
-            period = quantify_dset(sim['p0/period']).value_in(units.yr)
-            ml_index = sim['p0/massloss_index'].value
-            label = "e0= "+str(round(eccentricity[0], 1))
-            ax1.plot(time, period, lw=1, ls='-',  c=next(colorcycle1), label=label)
-            ax2.plot(time, period, lw=1, ls='-',  c=next(colorcycle2), label=label)
-            ax3.plot(time, ml_index, lw=1, ls='-',  c=next(colorcycle3), label=label)
+        def angular_momentum_error_vs_time():
+            imgname = 'angular_momentum_error_vs_time.png'
+            fig = plt.figure(figsize=(8, 8))
+            ax = fig.add_subplot(111)
+            colorcycle = cycle(cmap(numpy.linspace(0, 0.95, 10)))
 
-        ax1.set_yscale('log')
-        ax2.set_yscale('log')
-        ax3.set_yscale('log')
+            for h, lbl in zip(angular_momenta, ecc_labels):
+                h_error = (h[0] - h)/h[0]
+                ax.plot(time, h_error, lw=1, ls='-', c=next(colorcycle), label=lbl)
 
-        plt.subplots_adjust(hspace=0.001)
-        plt.savefig(directory+imgname, bbox_inches='tight', dpi=150)
-        plt.close()
-
-    def plot_figure_07(integrator=None, imgname='07.jpg'):
-        f = binaries_highly_adiabatic.hdf5file
-        if integrator is None:
-            integrator = binaries_highly_adiabatic.available_integrators()[0]
-        cmap = cm.jet
-
-        colorcycle = cycle(cmap(numpy.linspace(0, 0.95, 10)))
-
-        fig = plt.figure(figsize=(8, 8))
-        ax = fig.add_subplot(111)
-
-        for sim in f[integrator].values():
-            time = quantify_dset(sim['time']).value_in(units.yr)
-            eccentricity = sim['p0/eccentricity'].value
-            angular_momentum = quantify_dset(sim['angular_momentum']).number
-            label = "e0= "+str(round(eccentricity[0], 1))
-            ang0 = angular_momentum[0]
-            angular_momentum_error = (ang0 - angular_momentum)/ang0
-            ax.plot(time, angular_momentum_error, lw=1, ls='-',  c=next(colorcycle), label=label)
             ax.set_xlim(time[0], time[-1])
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
 
-        plt.savefig(directory+imgname, bbox_inches='tight', dpi=150)
-        plt.close()
+        def angular_momentum_error_vs_adiabaticity():
+            imgname = 'angular_momentum_error_vs_adiabaticity.png'
+            fig = plt.figure(figsize=(8, 8))
+            ax = fig.add_subplot(111)
+            colorcycle = cycle(cmap(numpy.linspace(0, 0.95, 10)))
 
-    def plot_angular_momentum_vs_adabaticity(integrator=None, imgname='07_ad.png'):
-        f = binaries_highly_adiabatic.hdf5file
-        if integrator is None:
-            integrator = binaries_highly_adiabatic.available_integrators()[0]
-        cmap = cm.jet
+            for h, ml_index, lbl in zip(angular_momenta, ml_indices, ecc_labels):
+                h_error = (h[0] - h)/h[0]
+                ax.plot(ml_index, h_error, lw=1, ls='-',  c=next(colorcycle), label=lbl)
+                ax.set_xlim(ml_index[0], ml_index[-1])
 
-        colorcycle = cycle(cmap(numpy.linspace(0, 0.95, 10)))
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
 
-        fig = plt.figure(figsize=(8, 8))
-        ax = fig.add_subplot(111)
+        sma_vs_time()
+        sma_vs_adiabaticity()
+        sma_error_vs_time()
+        sma_error_vs_adiabaticity()
+        eccentricity_vs_time()
+        eccentricity_vs_adiabaticity()
+        sma_error_vs_eccentricity_error()
+        true_anomaly_vs_time()
+        argument_of_periapsis_vs_time()
+        adiabaticity_vs_time()
+        angular_momentum_error_vs_time()
+        angular_momentum_error_vs_adiabaticity()
 
-        for sim in f[integrator].values():
-            eccentricity = sim['p0/eccentricity'].value
-            ml_index = sim['p0/massloss_index'].value
-            angular_momentum = quantify_dset(sim['angular_momentum']).number
-            label = "e0= "+str(round(eccentricity[0], 1))
-            ang0 = angular_momentum[0]
-            angular_momentum_error = (ang0 - angular_momentum)/ang0
-            ax.plot(ml_index, angular_momentum_error, lw=1, ls='-',  c=next(colorcycle), label=label)
-            ax.set_xlim(ml_index[0], ml_index[-1])
-
-        plt.savefig(directory+imgname, bbox_inches='tight', dpi=150)
-        plt.close()
-
-    plot_figure_01()
-    plot_figure_02()
-    plot_sma_vs_adiabaticity()
-    plot_figure_03()
-    plot_eccentricity_vs_adiabaticity()
-    plot_figure_04()
-    plot_figure_05()
-    plot_figure_06()
-    plot_figure_07()
-    plot_angular_momentum_vs_adabaticity()
+    binaries(binaries_1)
+    binaries(binaries_2)
+    binaries(binaries_3)
+    binaries(binaries_4)
+    binaries(binaries_5)
+    binaries(binaries_6)
 
 def axis_position(rows, columns):
     total = rows * columns
@@ -294,4 +304,5 @@ def sma_analytical(a0, mdot, t, mu0):
     
 
 if __name__ == '__main__':
+    mpl.rc('font',  size=9, family='sans-serif')
     main()

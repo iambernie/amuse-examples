@@ -47,13 +47,20 @@ def args_integrators():
     return IntegratorsAction
     
 
-class Parameters(object):
-    def __init__(self, hdf5filename):
+class SimData(object):
+    def __init__(self, hdf5filename, **kwargs):
         self.hdf5filename = hdf5filename
         self.hdf5file = h5py.File(hdf5filename, 'r')
 
+        if 'figdir' in kwargs:
+            self.figdir = kwargs['figdir']
+
     def available_integrators(self):
         return self.hdf5file.keys()
+
+    @property
+    def parameters(self):
+        return self.hdf5file.attrs 
 
 
 class MassState(object):
