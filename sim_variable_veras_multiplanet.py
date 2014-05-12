@@ -43,7 +43,7 @@ def main():
         subst = (args.centralmass.number, args.orbitmass.number,
                  args.mdot.number, args.smainner.number, spacing, space, args.endtime.number,
                  args.datapoints, integrators)
-        name = 'variable_multiplanet_M{}_m{}_mdot{}_sma_in{}__i{}_{}_t{}_p{}_{}.hdf5'.format(*subst)
+        name = 'variable_multiplanet_M{}_m{}_mdot{}_sma_in{}__eta{}_{}_t{}_p{}_{}.hdf5'.format(*subst)
         filename = args.directory+name
     else:
         filename = args.filename
