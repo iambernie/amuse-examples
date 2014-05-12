@@ -3,6 +3,7 @@ import numpy
 from amuse.units import constants
 from amuse.units import units
 from amuse.datamodel.particles import Particles
+from amuse.datamodel.particles import Particle
 
 #TODO: absolute path
 from misc import new_binary_from_elements
@@ -95,5 +96,25 @@ def veras_multiplanet():
 
     return threebody
 
+def nbodies(centralmass, *orbiting):
+    """
+    Parameters
+    ----------
+    centralmass: mass of the central body
+    orbiting: dictionary with args/kwargs to create binary from elements
+
+    """
+    bodies = Particles()
+
+    centralbody = Particle(mass = centralmass)
+    bodies.add_particle(centralbody) 
+
+    for body in orbiting:
+        mass = body['mass']
+        elements = body['elements']
+        twobody = new_binary_from_elements(centralmass, mass, **elements)
+        bodies.add_particle(twobody[1])
+        
+    return bodies
 
 

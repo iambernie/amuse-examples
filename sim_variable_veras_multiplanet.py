@@ -16,10 +16,11 @@ from amuse.community.huayno.interface import Huayno
 from amuse.community.smalln.interface import SmallN
 
 from ext.hdf5utils import HDF5HandlerAmuse
-from ext.misc import MassState
 from ext.misc import orbital_elements
+from ext.misc import VariableMassState
 from ext.misc import args_quantify
 from ext.misc import args_integrators
+
 from ext import systems
 
 def main():
@@ -29,24 +30,23 @@ def main():
 
     if args.logspace:
         space = 'logspace'
-        timesteps = numpy.logspace(*args.timesteps) |units.yr
+        etas = numpy.logspace(*args.etas)
     elif args.linspace:
         space = 'linspace'
-        timesteps = numpy.linspace(*args.timesteps) |units.yr
+        etas = numpy.linspace(*args.etas)
     else:
         space = 'arange'
-        timesteps = numpy.arange(*args.timesteps) |units.yr
+        etas = numpy.arange(*args.etas)
 
     if not args.filename:
-        spacing = "_".join([str(i) for i in args.timesteps]) 
-        subst = (args.centralmass.number, args.orbitmass.number, 
+        spacing = "_".join([str(i) for i in args.etas])
+        subst = (args.centralmass.number, args.orbitmass.number,
                  args.mdot.number, args.smainner.number, spacing, space, args.endtime.number,
                  args.datapoints, integrators)
-        name = 'multiplanet_M{}_m{}_mdot{}_sma_in{}__i{}_{}_t{}_p{}_{}.hdf5'.format(*subst)
+        name = 'variable_multiplanet_M{}_m{}_mdot{}_sma_in{}__i{}_{}_t{}_p{}_{}.hdf5'.format(*subst)
         filename = args.directory+name
     else:
         filename = args.filename
-
 
     with HDF5HandlerAmuse(filename) as datahandler:
         commit = subprocess.check_output(["git", "rev-parse","HEAD"])
@@ -57,15 +57,15 @@ def main():
         datahandler.file.attrs['mdot'] = str(args.mdot)
         datahandler.file.attrs['sma'] = str(args.smainner)
         datahandler.file.attrs['space'] = space
-        datahandler.file.attrs['timesteps'] = spacing
+        datahandler.file.attrs['etas'] = spacing
         datahandler.file.attrs['endtime'] = str(args.endtime)
         datahandler.file.attrs['datapoints'] = args.datapoints
         datahandler.file.attrs['integrators'] = integrators
 
-        simulations(datahandler, timesteps)
+        simulations(datahandler, etas)
 
 
-def simulations(datahandler, timesteps):
+def simulations(datahandler, etas):
     """
     Set up the simulations here.
 
@@ -74,38 +74,35 @@ def simulations(datahandler, timesteps):
         - create a MassState() instance. (i.e. define a massloss prescription)
         - call evolve_system()
 
-    Parameters
-    ----------
-    datahandler: HDF5HandlerAmuse context manager
-    timesteps: VectorQuantity representing massupdate intervals
-
     """
     body1 = dict(mass=args.orbitmass, elements=dict(semimajor_axis=args.smainner, eccentricity=0))
     body2 = dict(mass=args.orbitmass, elements=dict(semimajor_axis=args.smaouter, eccentricity=0.5))
     threebody = systems.nbodies(args.centralmass, body1, body2)
-    print(threebody)
 
     for intr in args.integrators:
-        for i, timestep in enumerate(timesteps):
+        for i, eta in enumerate(etas):
             datahandler.prefix = intr.__name__+"/sim_"+str(i).zfill(4)+"/"
-            datahandler.append(timestep, "timestep")
-            state = MassState(timestep, args.endtime, threebody[0].mass, args.mdot, 
-                              datapoints=args.datapoints, name=datahandler.prefix)
+            datahandler.append(eta, "eta")
+            state = VariableMassState(args.endtime, threebody[0].mass, args.mdot, 
+                              datapoints=args.datapoints, eta=eta, name=datahandler.prefix)
             evolve_system(intr, threebody, state, datahandler)
             datahandler.file.flush()
 
 def evolve_system(integrator, particles, state, datahandler):
     """
+    Iteratively calls integrator.evolve_model().
+
     Parameters
     ----------
-    integrator: a community code interface
     particles: a two-body system 
     state: MassState instance
     datahandler: HDF5HandlerAmuse context manager
 
     """
-    intr = integrator(nbody_to_si(particles.total_mass(), 10 |units.AU))
+    intr = integrator(nbody_to_si(particles.total_mass(), 1 |units.AU))
     intr.particles.add_particles(particles)
+
+    state.intr = intr
 
     time, mass = next(state.time_and_mass)
     savepoint = next(state.savepoint)
@@ -170,7 +167,7 @@ def store_data(intr, state, datahandler):
     p1.remove_particle(p1[1])
 
     for i, pset in enumerate([p0, p1]):
-        currentprefix = datahandler.prefix
+        currentprefix = datahandler.prefix        
         datahandler.prefix = currentprefix+"p"+str(i)+"/"
 
         a, e, i, w, W, f = orbital_elements(pset)
@@ -188,8 +185,10 @@ def store_data(intr, state, datahandler):
         h.append(massloss_index, "massloss_index")
         datahandler.prefix = currentprefix
 
+
 def get_arguments():
     parser = argparse.ArgumentParser()
+
 
     parser.add_argument('-f','--filename',
                         help="Filepath for hdf5 file.")
@@ -227,14 +226,14 @@ def get_arguments():
                         action=args_quantify(units.yr),
                         help="endtime in years.")
 
-    parser.add_argument('--datapoints', type=int, default=500,
-                        help="Number of datapoints.")
-
     parser.add_argument('--integrators', nargs='+',
                         default=[SmallN, ph4, Hermite, Huayno],
                         action=args_integrators(),
                         help="Integrators to use. Valid integrators:\
                         Hermite, SmallN, ph4, Huayno")
+
+    parser.add_argument('--datapoints', type=int, default=500,
+                        help="Number of datapoints.")
 
     parser.add_argument('--logspace', action='store_true', 
                         help="Use numpy.logspace in stead of numpy.arange \
@@ -244,10 +243,10 @@ def get_arguments():
                         help="Use numpy.linspace in stead of numpy.arange \
                               to set timesteps.")
 
-    parser.add_argument('--timesteps', type=float, default=[50, 100, 10], 
+    parser.add_argument('--etas', type=float, default=[0.1, 2, 0.1], 
                         nargs=3, help="Supply numpy.arange(START, STOP, STEP) \
-                        arguments to create an ndarray of timesteps. \
-                        e.g.: --timesteps 10 100 10")
+                        arguments to create an ndarray of etas. \
+                        e.g.: --etas 10 100 10")
 
     args = parser.parse_args()
     return args
@@ -256,5 +255,6 @@ if __name__ == "__main__":
     args = get_arguments()
     print(args)
     main()
+
 
 

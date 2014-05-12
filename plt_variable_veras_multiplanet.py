@@ -26,24 +26,23 @@ def main():
 
     for intr in f.values():
 
-        timesteps_vq = AdaptingVectorQuantity()
+        etas = [] 
         final_smas_p0_vq = AdaptingVectorQuantity()
         final_smas_p1_vq = AdaptingVectorQuantity()
 
         for sim in intr.values():
-            timesteps_vq.append(sim['timestep'][0] | retrieve_unit(sim['timestep']))
+            etas.append(sim['eta'][0])
             final_smas_p0_vq.append(sim['p0/sma'][-1]| retrieve_unit(sim['p0/sma']))
             final_smas_p1_vq.append(sim['p1/sma'][-1]| retrieve_unit(sim['p1/sma']))
 
-        timesteps = timesteps_vq.value_in(units.yr)
         final_smas_p0 = final_smas_p0_vq.value_in(units.AU)
         final_smas_p1 = final_smas_p1_vq.value_in(units.AU)
 
-        ax1.plot(timesteps, final_smas_p0, marker='o', label=intr.name, picker=5)
-        ax2.plot(timesteps, final_smas_p1, marker='o', label=intr.name, picker=5)
+        ax1.plot(etas, final_smas_p0, marker='o', label=intr.name, picker=5)
+        ax2.plot(etas, final_smas_p1, marker='o', label=intr.name, picker=5)
 
-        ax1.set_xlabel('Mass update interval [yr]')
-        ax2.set_xlabel('Mass update interval [yr]')
+        ax1.set_xlabel('eta')
+        ax2.set_xlabel('eta')
         ax1.set_ylabel('final sma inner [AU]')
         ax2.set_ylabel('final sma outer [AU]')
 

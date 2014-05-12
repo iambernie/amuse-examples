@@ -81,7 +81,7 @@ class HDF5Handler(object):
                 h.append(ndarray, '/grp1/velocity')
 
     """
-    def __init__(self, filename, mode='a', prefix=None):
+    def __init__(self, filename, mode='w', prefix=None):
         """
         Parameters
         ----------
