@@ -93,10 +93,11 @@ def create_mpeg(sim):
 
     all_x = numpy.hstack([CM_x, central_x, orbiting_x])
     all_y = numpy.hstack([CM_y, central_y, orbiting_y])
-    ax1.set_xlim(all_x.min(), all_x.max() )
-    ax1.set_ylim(all_y.min(), all_y.max() )
+    ax1.set_xlim(all_x.min() - 0.1*abs(all_x.min()), all_x.max() + 0.1*abs(all_x.max()) )
+    ax1.set_ylim(all_y.min() - 0.1*abs(all_y.min()), all_y.max() + 0.1*abs(all_y.max()) )
     ax1.set_xlabel('x [AU]')
     ax1.set_ylabel('y [AU]')
+    ax1.set_aspect('equal')
 
     def update_fig(i):
         #t = time[i]

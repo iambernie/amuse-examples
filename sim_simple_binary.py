@@ -91,7 +91,7 @@ def evolve_system(integrator, particles, state, datahandler):
     datahandler: HDF5HandlerAmuse context manager
 
     """
-    intr = integrator(nbody_to_si(particles.total_mass(), 1 |units.AU))
+    intr = integrator(nbody_to_si(particles.total_mass(), 100 |units.AU))
     intr.particles.add_particles(particles)
 
     time, mass = next(state.time_and_mass)
