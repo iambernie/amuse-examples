@@ -15,7 +15,11 @@ from itertools import cycle
 
 def main():
     directory = 'figures/' 
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
+    simple_binary_1 = SimData('data/single_binary_M1.0_m1.0_mdot5e-06_elems10.0_0.1_0.0_0.0_0.0_0.0_i1.0_t10000.0_p2000_Sm_ph_He_Hu.hdf5', figdir='simple_binary_1/')
+    simple_binary_2 = SimData('data/single_binary_M1.0_m1.0_mdot5e-06_elems10.0_0.1_0.0_0.0_0.0_0.0_i1.0_t10000.0_p20000_Sm.hdf5', figdir='simple_binary_2/')
     binaries_1 = SimData('data/binaries_M1_m0.001_mdot5e-05_s10.0_i1_t15000.0_p15000_Sm_ph_He_Hu.hdf5', figdir='binaries_10/')
     binaries_2 = SimData('data/binaries_M1_m0.001_mdot5e-05_s50.0_i1_t15000.0_p15000_Sm_ph_He_Hu.hdf5', figdir='binaries_50/')
     binaries_3 = SimData('data/binaries_M1_m0.001_mdot5e-05_s100.0_i1_t15000.0_p5000_Sm_ph_He_Hu.hdf5', figdir='binaries_100/')
@@ -285,12 +289,104 @@ def main():
         angular_momentum_error_vs_time()
         angular_momentum_error_vs_adiabaticity()
 
-    binaries(binaries_1)
-    binaries(binaries_2)
-    binaries(binaries_3)
-    binaries(binaries_4)
-    binaries(binaries_5)
-    binaries(binaries_6)
+    def simple_binary(simdata, *args, **kwargs):
+        f = simdata.hdf5file
+        figdir = simdata.figdir
+        targetdir = directory+figdir
+
+        if not os.path.exists(targetdir):
+            os.makedirs(targetdir)
+
+        firstsim = f.values()[0]
+        time = quantify_dset(firstsim['time']).value_in(units.yr)
+        totalmass = quantify_dset(firstsim['mass']).lengths().value_in(units.MSun)
+
+        smas = []
+        eccentricities = []
+        intr_labels = []
+        smas_ad = []
+        ml_indices = []
+        arguments_of_periapsis = []
+        angular_momenta = []
+        O_angular_momenta = []
+        true_anomalies = []
+        periods = []
+
+        for intr in f.values():
+            sma = quantify_dset(intr['p0/sma']).value_in(units.AU)
+            smas.append(sma)
+            #smas_ad.append(sma_analytical(sma0, mdot, time, centralmass))
+            ml_indices.append(intr['p0/massloss_index'].value)
+            eccentricities.append(intr['p0/eccentricity'].value)
+            intr_labels.append(str(intr))
+            arguments_of_periapsis.append(intr['p0/argument_of_periapsis'].value)
+            periods.append(quantify_dset(intr['p0/period']).value_in(units.yr))
+            angular_momenta.append(quantify_dset(intr['angular_momentum']).lengths().number)
+            O_angular_momenta.append(quantify_dset(intr['O_angular_momentum']).lengths().number)
+            true_anomalies.append(intr['p0/true_anomaly'].value)
+
+        cmap = cm.jet
+        savefigargs = dict(bbox_inches='tight', dpi=150)
+        
+        def angular_momentum_vs_time():
+            imgname = 'angular_momentum_vs_time.png'
+            fig = plt.figure(figsize=(8, 8))
+            ax = fig.add_subplot(111)
+            colorcycle = cycle(['k','r','g','y', 'c', 'm', 'b'])
+
+            for h, lbl in zip(angular_momenta, intr_labels):
+                ax.plot(time, h, lw=1, ls='-', c=next(colorcycle), label=lbl)
+            
+            ax.legend(loc='best')
+            ax.set_xlim(time[0], time[-1])
+
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
+
+        def O_angular_momentum_vs_time():
+            imgname = 'O_angular_momentum_vs_time.png'
+            fig = plt.figure(figsize=(8, 8))
+            ax = fig.add_subplot(111)
+            colorcycle = cycle(['k','r','g','y', 'c', 'm', 'b'])
+
+            for h, lbl in zip(O_angular_momenta, intr_labels):
+                ax.plot(time, h, lw=1, ls='-',  c=next(colorcycle), label=lbl)
+            
+            ax.legend(loc='best')
+            ax.set_xlim(time[0], time[-1])
+
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
+
+        def eccentricity_vs_time():
+            imgname = 'eccentricity_vs_time.png'
+            fig = plt.figure(figsize=(8, 8))
+            ax = fig.add_subplot(111)
+            colorcycle = cycle(['k','r','g','y', 'c', 'm', 'b'])
+
+            for e, lbl in zip(eccentricities, intr_labels):
+                ax.plot(time, e, lw=1, ls='-', c=next(colorcycle), label=lbl)
+            
+            ax.legend(loc='best')
+            ax.set_xlim(time[0], time[-1])
+
+            plt.savefig(targetdir+imgname, **savefigargs)
+            plt.close()
+
+        angular_momentum_vs_time()
+        O_angular_momentum_vs_time()
+        eccentricity_vs_time()
+
+        
+
+    #binaries(binaries_1)
+    #binaries(binaries_2)
+    #binaries(binaries_3)
+    #binaries(binaries_4)
+    #binaries(binaries_5)
+    #binaries(binaries_6)
+    simple_binary(simple_binary_1)
+    simple_binary(simple_binary_2)
 
 def axis_position(rows, columns):
     total = rows * columns
