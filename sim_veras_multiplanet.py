@@ -231,7 +231,7 @@ def get_arguments():
                         help="Number of datapoints.")
 
     parser.add_argument('--integrators', nargs='+',
-                        default=[SmallN, ph4, Hermite, Huayno],
+                        default=[SmallN],
                         action=args_integrators(),
                         help="Integrators to use. Valid integrators:\
                         Hermite, SmallN, ph4, Huayno")
