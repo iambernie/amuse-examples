@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import h5py
 import numpy
 import argparse
@@ -54,6 +55,8 @@ class SimData(object):
 
         if 'figdir' in kwargs:
             self.figdir = kwargs['figdir']
+        else:
+            self.figdir = os.path.splitext(os.path.basename(hdf5filename))[0]+'/'
 
     def available_integrators(self):
         return self.hdf5file.keys()
@@ -357,7 +360,7 @@ def get_orbital_elements(binary, G=constants.G, reference_direction=None,
     n = n_.length()
 
 
-    ##########  longtitude of ascending node W  ##########
+    ##########  longitude of ascending node W  ##########
     if n.number == 0:
         n_ = reference_direction
         W = 0

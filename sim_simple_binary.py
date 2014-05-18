@@ -110,16 +110,18 @@ def evolve_system(integrator, particles, state, datahandler):
         elif time < savepoint:
             intr.evolve_model(time)
             intr.particles[0].mass = mass
+            store_massupdatepoint(intr, datahandler, time)
 
             try:
                 time, mass = next(state.time_and_mass)
             except StopIteration:
                 pass
 
-        elif time == savepoint:
+        else:# time == savepoint:
             intr.evolve_model(time)
             intr.particles[0].mass = mass
             store_data(intr, state, datahandler)
+            store_massupdatepoint(intr, datahandler, time)
 
             try:
                 time, mass = next(state.time_and_mass)
@@ -131,6 +133,29 @@ def evolve_system(integrator, particles, state, datahandler):
             except StopIteration:
                 pass
     intr.stop()
+
+
+def store_massupdatepoint(intr, datahandler, time):
+    h = datahandler
+    p = intr.particles
+
+    currentprefix = datahandler.prefix
+
+    datahandler.prefix = currentprefix+"massupdate"+"/"
+    a, e, i, w, W, f = orbital_elements(p)
+    h.append(time, "massupdatetime")
+    h.append(p.center_of_mass(), "CM_position")
+    h.append(p.center_of_mass_velocity(), "CM_velocity")
+    h.append(p.position, "position")
+    h.append(p.velocity, "velocity")
+    h.append(a, "sma")
+    h.append(e, "eccentricity")
+    h.append(i, "inclination")
+    h.append(w, "argument_of_periapsis")
+    h.append(W, "longitude_of_ascending_node")
+    h.append(f, "true_anomaly")
+
+    datahandler.prefix = currentprefix
 
 def store_data(intr, state, datahandler):
     """
@@ -174,7 +199,6 @@ def store_data(intr, state, datahandler):
     h.append(massloss_index, "massloss_index")
 
     datahandler.prefix = currentprefix
-
 
 
 def get_arguments():
@@ -222,7 +246,7 @@ def get_arguments():
                         help="Number of datapoints.")
 
     parser.add_argument('--integrators', nargs='+',
-                        default=[SmallN, ph4, Hermite, Huayno],
+                        default=[SmallN],
                         action=args_integrators(),
                         help="Integrators to use. Valid integrators:\
                         Hermite, SmallN, ph4, Huayno")
