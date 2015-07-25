@@ -18,7 +18,7 @@ from ext.misc import SimData
 from itertools import cycle
 
 def main():
-    directory = 'figures/' 
+    directory = 'figures/'
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -32,15 +32,15 @@ def main():
             os.makedirs(targetdir)
 
         if 'integrator' in kwargs:
-           integrator = kwargs['integrator'] 
-        else: 
+           integrator = kwargs['integrator']
+        else:
             integrator = simdata.available_integrators()[0]
 
         centralmass = float(simdata.parameters['M'].split()[0])
         interval = float(simdata.parameters['interval'].split()[0])
         datapoints = int(simdata.parameters['datapoints'])
-        mdot = float(simdata.parameters['mdot'].split()[0]) 
-        sma0 = float(simdata.parameters['sma'].split()[0]) 
+        mdot = float(simdata.parameters['mdot'].split()[0])
+        sma0 = float(simdata.parameters['sma'].split()[0])
 
         print("sma0 {} AU".format(sma0))
 
@@ -59,7 +59,7 @@ def main():
         angular_momenta = []
         true_anomalies = []
         periods = []
-        
+
         for sim in f[integrator].values():
             e0 = round(sim['p0/eccentricity'][0], 1)
             ml = sim['p0/massloss_index'].value
@@ -79,20 +79,6 @@ def main():
         cmap = cm.jet
         savefigargs = dict(bbox_inches='tight', dpi=150)
 
-        #def ecc_ad_vs_time():
-        #    imgname = 'ecc_ad_vs_time.png'
-        #    fig = plt.figure(figsize=(32,16))
-        #    ax = fig.add_subplot(111)
-        #    ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
-
-        #    for ecc_ad, lbl in zip(ecc_ads, ecc_labels):
-        #        ax.plot(time, ecc_ad, lw=1, ls='-', label=lbl)
-
-        #    ax.set_xlim(time[0], time[-1])
-        #    ax.set_xlabel('time [yr]')
-        #    ax.set_ylabel('ecc_ad')
-        #    plt.savefig(targetdir+imgname, **savefigargs )
-        #    plt.close()
 
         def sma_vs_time():
             imgname = 'sma_vs_time.png'
@@ -109,21 +95,6 @@ def main():
             plt.savefig(targetdir+imgname, **savefigargs )
             plt.close()
 
-        #def sma_vs_adiabaticity():
-        #    imgname = 'sma_vs_adiabaticity.png'
-        #    fig = plt.figure(figsize=(32,16))
-        #    ax = fig.add_subplot(111)
-        #    ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
-
-        #    for sma, ml_index, lbl in zip(smas, ml_indices, ecc_labels):
-        #        ax.plot(ml_index, sma, lw=1, ls='-', label=lbl)
-
-        #    ax.set_xlim(ml_index[0], ml_index[-1])
-        #    ax.set_xlabel('massloss-index')
-        #    ax.set_ylabel('sma [AU]')
-        #    plt.savefig(targetdir+imgname, **savefigargs)
-        #    plt.close()
-
         def sma_error_vs_time():
             imgname = 'sma_error_vs_time.png'
             fig = plt.figure(figsize=(8, 6))
@@ -132,27 +103,12 @@ def main():
 
             for sma, sma_ad, lbl in zip(smas, smas_ad, ecc_labels):
                 ax.plot(time, (sma-sma_ad)/sma_ad, lw=1, ls='-', label=lbl)
-        
+
             ax.set_xlim(time[0], time[-1])
             ax.set_xlabel('time [yr]')
             ax.set_ylabel('(sma-sma_ad)/sma_ad ')
             plt.savefig(targetdir+imgname, **savefigargs)
             plt.close()
-
-        #def sma_error_vs_adiabaticity():
-        #    imgname = 'sma_error_vs_adiabaticity.png'
-        #    fig = plt.figure(figsize=(32,16))
-        #    ax = fig.add_subplot(111)
-        #    ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
-
-        #    for ml_index, sma_ad, lbl in zip(ml_indices, smas_ad, ecc_labels):
-        #        ax.plot(ml_index, (sma-sma_ad)/sma_ad, lw=1, ls='-', label=lbl)
-        #
-        #    ax.set_xlim(ml_index[0], ml_index[-1])
-        #    ax.set_xlabel('massloss-index')
-        #    ax.set_ylabel('(sma-sma_ad)/sma_ad ')
-        #    plt.savefig(targetdir+imgname, **savefigargs)
-        #    plt.close()
 
         def eccentricity_vs_time():
             imgname = 'eccentricity_vs_time.png'
@@ -169,27 +125,12 @@ def main():
             plt.savefig(targetdir+imgname, **savefigargs)
             plt.close()
 
-        #def eccentricity_vs_adiabaticity():
-        #    imgname = 'eccentricity_vs_adiabaticity.png'
-        #    fig = plt.figure(figsize=(32,16))
-        #    ax = fig.add_subplot(111)
-        #    ax.set_color_cycle(cmap(numpy.linspace(0, 0.95, 10)))
-
-        #    for ecc, ml_index, lbl in zip(eccentricities, ml_indices, ecc_labels):
-        #        ax.plot(ml_index, ecc, lw=2, ls='-', label=lbl)
-
-        #    ax.set_xlim(ml_index[0], ml_index[-1])
-        #    ax.set_xlabel('massloss-index')
-        #    ax.set_ylabel('eccentricity')
-        #    plt.savefig(targetdir+imgname, **savefigargs)
-        #    plt.close()
-
 
         def true_anomaly_vs_time():
             imgname = 'true_anomaly_vs_time.png'
             fig = plt.figure(figsize=(16, 8))
             colorcycle = cycle(cmap(numpy.linspace(0, 0.95, 10)))
-            position_generator = axis_position(10, 1) 
+            position_generator = axis_position(10, 1)
 
             totalsims = len(f[integrator].values())
 
@@ -209,7 +150,7 @@ def main():
                     #ax.set_xticks(numpy.arange(1000, 15000, 1000))
 
             ax.set_xlabel('time [yr]')
-        
+
             plt.subplots_adjust(hspace=0.001)
             plt.savefig(targetdir+imgname, **savefigargs)
             plt.close()
@@ -218,13 +159,13 @@ def main():
             imgname = 'argument_of_periapsis_vs_time.png'
             fig = plt.figure(figsize=(20, 20))
             colorcycle = cycle(cmap(numpy.linspace(0, 0.95, 10)))
-            position_generator = axis_position(3, 4) 
+            position_generator = axis_position(3, 4)
 
             for w, lbl in zip(arguments_of_periapsis, ecc_labels):
                 ax = fig.add_subplot(*next(position_generator), polar=True)
                 ax.plot(w, time, lw=1, ls='-',  c=next(colorcycle), label=lbl)
                 #ax.set_rgrids(numpy.array([5000,10000,15000]), angle=270)
-        
+
             plt.savefig(targetdir+imgname, **savefigargs)
             plt.close()
 
@@ -240,7 +181,6 @@ def main():
             ax.set_xlim(time[0], time[-1])
             ax.set_xlabel('time [yr]')
             ax.set_ylabel('mass-loss index')
-            #ax1.set_yscale('log')
 
             plt.savefig(targetdir+imgname, **savefigargs)
             plt.close()
@@ -263,17 +203,11 @@ def main():
         sma_vs_time()
         sma_error_vs_time()
         eccentricity_vs_time()
-        #true_anomaly_vs_time()
-        #argument_of_periapsis_vs_time()
+        true_anomaly_vs_time()
+        argument_of_periapsis_vs_time()
         adiabaticity_vs_time()
         angular_momentum_vs_time()
 
-        #ecc_ad_vs_time()
-        #sma_vs_adiabaticity()
-        #sma_error_vs_adiabaticity()
-        #eccentricity_vs_adiabaticity()
-        #sma_error_vs_eccentricity_error()
-        #angular_momentum_error_vs_adiabaticity()
 
     def simple_binary(simdata, *args, **kwargs):
         f = simdata.hdf5file
@@ -285,8 +219,8 @@ def main():
             os.makedirs(targetdir)
 
         if 'integrator' in kwargs:
-           integrator = kwargs['integrator'] 
-        else: 
+           integrator = kwargs['integrator']
+        else:
             integrator = simdata.available_integrators()[0]
 
         sim = f[integrator]
@@ -317,7 +251,7 @@ def main():
             pass
 
         savefigargs = dict(bbox_inches='tight', dpi=100)
-        
+
         def angular_momentum_vs_time():
             imgname = 'angular_momentum_vs_time.png'
             fig = plt.figure(figsize=(6, 2))
@@ -356,7 +290,7 @@ def main():
             imgname = 'sma_vs_time.png'
             fig = plt.figure(figsize=(6, 2))
             ax = fig.add_subplot(111)
-            ax.plot(time, sma, lw=2, ls='-', c='k')
+            ax.plot(time, sma, lw=1, ls='-', c='k')
             ax.set_xlabel('time [yr]')
             ax.set_ylabel('sma [AU]')
             ax.set_xlim(time[0], time[-1])
@@ -434,7 +368,7 @@ def main():
             CM_x = CM_position[:, x] - restframe[:, x]
             CM_y = CM_position[:, y] - restframe[:, y]
 
-            try: 
+            try:
                 if frame == 'cm':
                     restframe_at_update = CM_position_at_update
                 elif frame == 'M':
@@ -460,7 +394,7 @@ def main():
             cb = fig.colorbar(lc, shrink=0.8)
             cb.set_label('time [yr]')
             ax.add_collection(lc)
-            ax.scatter(orbiting_x_at_update, orbiting_y_at_update, s=10, color='k')
+            #ax.scatter(orbiting_x_at_update, orbiting_y_at_update, s=10, color='k')
 
             all_x = numpy.hstack([CM_x, central_x, orbiting_x])
             all_y = numpy.hstack([CM_y, central_y, orbiting_y])
@@ -472,16 +406,15 @@ def main():
 
             plt.savefig(targetdir+imgname, bbox_inches='tight', dpi=150)
             plt.close()
-            
 
-        #angular_momentum_vs_time()
-        #O_angular_momentum_vs_time()
-        #eccentricity_vs_time()
-        #sma_vs_time()    
-        #period_vs_time()
+
+        angular_momentum_vs_time()
+        O_angular_momentum_vs_time()
+        eccentricity_vs_time()
+        sma_vs_time()
+        period_vs_time()
         true_anomaly_vs_time()
         argument_of_periapsis_vs_time()
-        #longitude_of_ascending_node_vs_time()
         positions_in_time(frame='M')
 
 
@@ -494,12 +427,12 @@ def main():
             os.makedirs(targetdir)
 
         if 'integrator' in kwargs:
-           integrator = kwargs['integrator'] 
-        else: 
+           integrator = kwargs['integrator']
+        else:
             integrator = simdata.available_integrators()[0]
 
         centralmass = float(simdata.parameters['M'].split()[0])
-        mdot = float(simdata.parameters['mdot'].split()[0]) 
+        mdot = float(simdata.parameters['mdot'].split()[0])
 
 
         firstsim = f[integrator].values()[0]
@@ -512,7 +445,7 @@ def main():
         smas_ad = []
         ml_indices = []
         periods = []
-        
+
         for sim in f[integrator].values():
             ml = sim['p0/massloss_index'].value
             sma = quantify_dset(sim['p0/sma']).value_in(units.AU)
@@ -567,8 +500,8 @@ def main():
         sma_vs_time()
         sma_error_vs_time()
 
- 
-       
+
+
     #binaries(SimData('data/binaries_M1_m0.001_mdot5e-05_s10.0_i1.0_t5000.0_p1000_Sm_ph_He_Hu.hdf5', figdir='binaries_10/'))
     #binaries(SimData('data/binaries_M1_m0.001_mdot5e-05_s50.0_i1.0_t5000.0_p1000_Sm_ph_He_Hu.hdf5', figdir='binaries_50/'))
     #binaries(SimData('data/binaries_M1_m0.001_mdot5e-05_s100.0_i1.0_t5000.0_p1000_Sm_ph_He_Hu.hdf5', figdir='binaries_100/'))
@@ -587,89 +520,80 @@ def main():
     #binaries(SimData('data/binaries_M1_m0.001_mdot5e-05_s150.0_i10.0_t5000.0_p1000_Sm_ph_He_Hu.hdf5', figdir='binaries_150_i10/'))
     #binaries(SimData('data/binaries_M1_m0.001_mdot5e-05_s200.0_i10.0_t5000.0_p1000_Sm_ph_He_Hu.hdf5', figdir='binaries_200_i10/'))
 
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i1.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i1.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i1.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i1.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.8_0.0_0.0_0.0_0.0_i1.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.8_0.0_0.0_0.0_0.0_i1.0_t5050.0_p20000_Sm.hdf5'))
 
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems4.641_0.0_0.0_0.0_0.0_0.0_i0.5_t5000.0_p20000_Sm.hdf5',
-    #                      figdir='simple_binary_i01/'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems4.641_0.0_0.0_0.0_0.0_0.0_i25.0_t5000.0_p20000_Sm.hdf5',
-    #                      figdir='simple_binary_i25/'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems4.641_0.0_0.0_0.0_0.0_0.0_i50.0_t5000.0_p20000_Sm.hdf5',
-    #                      figdir='simple_binary_i50/'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems4.641_0.0_0.0_0.0_0.0_0.0_i250.0_t5000.0_p20000_Sm.hdf5',
-    #                      figdir='simple_binary_i250/'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems4.641_0.0_0.0_0.0_0.0_0.0_i500.0_t5000.0_p20000_Sm.hdf5',
-    #                      figdir='simple_binary_i500/'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems4.641_0.0_0.0_0.0_0.0_0.0_i1000.0_t5000.0_p20000_Sm.hdf5',
-    #                      figdir='simple_binary_i1000/'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems4.641_0.0_0.0_0.0_0.0_0.0_i2500.0_t5000.0_p20000_Sm.hdf5',
-    #                      figdir='simple_binary_i2500/'))
-
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i0.5_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i0.5_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i0.5_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i0.5_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i0.5_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i0.5_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i10.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i10.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i10.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i10.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i10.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i10.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i25.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i25.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i25.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i25.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i25.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i25.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i50.0_t5000.0_p20000_Sm.hdf5'))
-    #SIMPLE_Binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i50.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i50.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i50.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i50.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i50.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i100.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i100.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i100.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i100.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i100.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i100.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i250.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i250.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i250.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i250.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i250.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i250.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i500.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i500.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i500.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i500.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i500.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i500.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i1000.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i1000.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i1000.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i1000.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i1000.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i1000.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i1500.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i1500.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i1500.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i1500.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i1500.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i1500.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i2000.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i2000.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i2000.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i2000.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i2000.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i2000.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i2500.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i2500.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i2500.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i2500.0_t5050.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i2500.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i2500.0_t5050.0_p20000_Sm.hdf5'))
-    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i100.0_t5000.0_p10000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i0.5_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i0.5_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i0.5_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i0.5_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i0.5_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i0.5_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i10.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i10.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i10.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i10.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i10.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i10.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i25.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i25.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i25.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i25.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i25.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i25.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i50.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i50.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i50.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i50.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i50.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i50.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i100.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i100.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i100.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i100.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i100.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i100.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i250.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i250.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i250.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i250.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i250.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i250.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i500.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i500.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i500.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i500.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i500.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i500.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i1000.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i1000.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i1000.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i1000.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i1000.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i1000.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i1500.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i1500.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i1500.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i1500.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i1500.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i1500.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i2000.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i2000.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i2000.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i2000.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i2000.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i2000.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i2500.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i2500.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i2500.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i2500.0_t5050.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i2500.0_t5000.0_p20000_Sm.hdf5'))
+    simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i2500.0_t5050.0_p20000_Sm.hdf5'))
+    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i100.0_t5000.0_p10000_Sm.hdf5'))
 
 
 
@@ -693,7 +617,7 @@ def sma_adiabatic(a0, mdot, t, mu0):
 def ecc_adiabatic(e0, psi0, true_anomaly):
     f = numpy.radians(true_anomaly)
     return e0+psi0*(1-e0**2)**(3/2.0)*numpy.sin(true_anomaly)/(1-e0*numpy.cos(true_anomaly))
-    
+
 
 if __name__ == '__main__':
     mpl.rc('font',  size=9, family='sans-serif')
