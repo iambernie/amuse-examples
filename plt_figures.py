@@ -622,7 +622,7 @@ def main():
     #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i25.0_t5000.0_p20000_Sm.hdf5'))
     #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i25.0_t5050.0_p20000_Sm.hdf5'))
     #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i50.0_t5000.0_p20000_Sm.hdf5'))
-    #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i50.0_t5050.0_p20000_Sm.hdf5'))
+    #SIMPLE_Binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.0_0.0_0.0_0.0_0.0_i50.0_t5050.0_p20000_Sm.hdf5'))
     #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i50.0_t5000.0_p20000_Sm.hdf5'))
     #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.5_0.0_0.0_0.0_0.0_i50.0_t5050.0_p20000_Sm.hdf5'))
     #simple_binary(SimData('data/single_binary_M1_m0.0001_mdot0.0001_elems5.0_0.9_0.0_0.0_0.0_0.0_i50.0_t5000.0_p20000_Sm.hdf5'))

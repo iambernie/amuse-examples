@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+l!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import subprocess
@@ -6,8 +6,8 @@ import argparse
 import numpy
 import time as Time
 
-from amuse.units import units 
-from amuse.units import constants 
+from amuse.units import units
+from amuse.units import constants
 from amuse.units.nbody_system import nbody_to_si
 from amuse.community.hermite0.interface import Hermite
 from amuse.community.ph4.interface import ph4
@@ -25,8 +25,8 @@ def main():
     integrators = '_'.join([intr.__name__[:2] for intr in args.integrators])
 
     if not args.filename:
-        subst = (args.centralmass.number, args.orbitmass.number, 
-                 args.mdot.number, args.sma.number, args.interval.number, 
+        subst = (args.centralmass.number, args.orbitmass.number,
+                 args.mdot.number, args.sma.number, args.interval.number,
                  args.endtime.number, args.datapoints, integrators)
         name = 'binaries_M{}_m{}_mdot{}_s{}_i{}_t{}_p{}_{}.hdf5'.format(*subst)
         filename = args.directory+name
@@ -55,14 +55,14 @@ def main():
 def simulations(datahandler, eccentricities):
     """ Simulates a binary system with different starting eccentricities. """
 
-    twobodies = [new_binary_from_elements(args.centralmass, args.orbitmass, 
-                                          args.sma, eccentricity=e) 
+    twobodies = [new_binary_from_elements(args.centralmass, args.orbitmass,
+                                          args.sma, eccentricity=e)
                                           for e in eccentricities]
 
     for intr in args.integrators:
         for i, bodies in enumerate(twobodies):
             datahandler.prefix = '/'+intr.__name__+'/'+str(i).zfill(4)+'/'
-            state = MassState(args.interval, args.endtime, bodies[0].mass, 
+            state = MassState(args.interval, args.endtime, bodies[0].mass,
                               args.mdot, args.datapoints, name=datahandler.prefix)
             evolve_system(intr, bodies, state, datahandler)
             datahandler.file.flush()
@@ -72,7 +72,7 @@ def evolve_system(integrator, particles, state, datahandler):
     """
     Parameters
     ----------
-    particles: a two-body system 
+    particles: a two-body system
     state: MassState instance
     datahandler: HDF5HandlerAmuse context manager
 
@@ -137,10 +137,10 @@ def store_data(intr, state, datahandler):
     h.append(p.potential_energy(), "potential_energy")
     h.append(intr.get_total_energy(), "total_energy")
 
-    currentprefix = datahandler.prefix        
+    currentprefix = datahandler.prefix
     datahandler.prefix = currentprefix+"p0"+"/"
     a, e, i, w, W, f = orbital_elements(p)
-    mu = p.mass.sum() 
+    mu = p.mass.sum()
     period = ((2*numpy.pi)**2*a**3/(constants.G*mu)).sqrt()
     mean_motion = 2*numpy.pi / period
     massloss_index = state.mdot / (mean_motion*mu)
@@ -165,32 +165,32 @@ def get_arguments():
     parser.add_argument('-d','--directory', default='data/',
                         help="Target directory for hdf5 file.")
 
-    parser.add_argument('-M', '--centralmass', type=float, 
-                        default=1 | units.MSun, 
+    parser.add_argument('-M', '--centralmass', type=float,
+                        default=1 | units.MSun,
                         action=args_quantify(units.MSun),
                         help="Mass of central body in MSun")
 
-    parser.add_argument('-m', '--orbitmass', type=float, 
+    parser.add_argument('-m', '--orbitmass', type=float,
                         default=0.001 | units.MSun,
                         action=args_quantify(units.MSun),
                         help="Mass of the orbiting body in MSun")
 
-    parser.add_argument('--mdot', type=float, 
+    parser.add_argument('--mdot', type=float,
                         default=5e-5 | (units.MSun/units.yr),
                         action=args_quantify(units.MSun/units.yr),
                         help="Masslossrate in MSun/yr")
 
-    parser.add_argument('--sma', type=float, 
+    parser.add_argument('--sma', type=float,
                         default=200 | units.AU,
                         action=args_quantify(units.AU),
                         help="Initial semimajoraxis in AU")
 
-    parser.add_argument('-i', '--interval', type=float, 
+    parser.add_argument('-i', '--interval', type=float,
                         default=1 | units.yr,
                         action=args_quantify(units.yr),
                         help="Mass update interval in years.")
 
-    parser.add_argument('--endtime', type=float, 
+    parser.add_argument('--endtime', type=float,
                         default=1.5e4 | units.yr,
                         action=args_quantify(units.yr),
                         help="endtime in years.")
@@ -199,7 +199,7 @@ def get_arguments():
                         help="Number of datapoints.")
 
     parser.add_argument('--integrators', nargs='+',
-                        default=[SmallN], 
+                        default=[SmallN],
                         action=args_integrators(),
                         help="Integrators to use. Valid integrators:\
                         Hermite, SmallN, ph4, Huayno")
@@ -212,6 +212,6 @@ if __name__ == "__main__":
     args = get_arguments()
     print(args)
     main()
-    
+
 
 

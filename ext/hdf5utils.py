@@ -73,12 +73,12 @@ class HDF5Handler(object):
     Usage should roughly be like:
     -----------------------------
 
-        with HDF5Handler('test.hdf5') as h:
-            while condition: #
-                h.append(ndarray, '/grp0/position')
-                h.append(ndarray, '/grp0/velocity')
-                h.append(ndarray, '/grp1/position')
-                h.append(ndarray, '/grp1/velocity')
+    >>> with HDF5Handler('test.hdf5') as h:
+    >>>     while condition: #
+    >>>         h.append(ndarray, '/grp0/position') #POSIX style
+    >>>         h.append(ndarray, '/grp0/velocity')
+    >>>         h.append(ndarray, '/grp1/position')
+    >>>         h.append(ndarray, '/grp1/velocity')
 
     """
     def __init__(self, filename, mode='w', prefix=None):
